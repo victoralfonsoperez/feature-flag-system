@@ -1,0 +1,32 @@
+name: Deploy on Flag Change
+
+on:
+  repository_dispatch:
+    types: [flag-changed]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Fetch build-time flags
+        run: |
+          curl -sf -H "Authorization: Bearer ${{ secrets.FLAG_SERVICE_TOKEN }}" \
+            "${{ secrets.FLAG_SERVICE_URL }}/api/flags?type=build-time&env=prod" \
+            | jq -r '.[] | "\(.key)=\(.value)"' > .env
+
+      - name: Install and build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy
+        run: |
+          echo "Deploy step — configure for your hosting platform"
+          # e.g., aws s3 sync, vercel deploy, rsync, etc.
