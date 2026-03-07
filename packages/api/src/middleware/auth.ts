@@ -1,8 +1,8 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 
-const API_TOKEN = process.env.API_TOKEN;
-
 export async function requireAuth(request: FastifyRequest, reply: FastifyReply) {
+  const API_TOKEN = process.env.API_TOKEN;
+
   if (!API_TOKEN) {
     request.log.error('API_TOKEN environment variable is not set');
     return reply.status(500).send({ error: 'Server misconfiguration', statusCode: 500 });
