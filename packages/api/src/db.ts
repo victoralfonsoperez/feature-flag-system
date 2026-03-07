@@ -16,6 +16,7 @@ export function initDatabase(dbPath?: string) {
       environment TEXT NOT NULL DEFAULT 'production',
       description TEXT DEFAULT '',
       variants TEXT DEFAULT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_by TEXT DEFAULT 'system'
     );
@@ -41,6 +42,7 @@ export type FlagRow = {
   environment: string;
   description: string;
   variants: string | null;
+  created_at: string;
   updated_at: string;
   updated_by: string;
 };
