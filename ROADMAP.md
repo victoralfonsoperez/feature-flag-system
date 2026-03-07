@@ -11,6 +11,43 @@ Get the Flag Service API running, tested, and deployable.
 | 1 | ~8h | Finalize SQLite schema and seed data, implement and manually test all CRUD endpoints (`GET`, `POST`, `PUT`, `DELETE`), add input validation and error handling |
 | 2 | ~7h | Add API token authentication middleware, write integration tests for all endpoints (Vitest), set up Docker build and verify it runs locally |
 
+### Phase 1 — Task Checklist
+
+#### Week 1: Schema, CRUD & Validation
+
+- [x] Add `created_at` column to `flags` table schema
+- [x] Add a seed data script (`packages/api/src/seed.ts`) with sample flags (boolean, string, JSON; build-time & runtime; multiple environments)
+- [x] Add an npm script `seed` to run the seed file
+- [x] Validate `type` field is `build-time` or `runtime` on POST
+- [x] Validate `environment` field against allowed values (e.g. `development`, `staging`, `production`)
+- [x] Validate `key` format (non-empty, no spaces, alphanumeric + dashes/underscores)
+- [x] Return `409 Conflict` on POST when flag key already exists
+- [x] Return proper error shape (`{ error, statusCode }`) consistently across all error responses
+- [x] Handle malformed JSON body gracefully (Fastify content-type parser errors)
+- [x] Verify GET `/api/flags` returns all flags and supports `?type=` and `?env=` filters
+- [x] Verify GET `/api/flags/:key` returns a single flag or 404
+- [x] Verify POST `/api/flags` creates a flag and returns 201
+- [x] Verify PUT `/api/flags/:key` updates a flag and logs to `audit_log`
+- [x] Verify DELETE `/api/flags/:key` removes a flag and returns 204
+- [x] Verify audit log entries are written for create, update, and delete actions
+
+#### Week 2: Auth, Tests & Docker
+
+- [ ] Create auth middleware (`packages/api/src/middleware/auth.ts`) that checks `Authorization: Bearer <API_TOKEN>` header
+- [ ] Register auth middleware on all mutating routes (POST, PUT, DELETE)
+- [ ] Allow unauthenticated access to read routes (GET `/api/flags`, GET `/api/flags/resolve`)
+- [ ] Return `401 Unauthorized` when token is missing, `403 Forbidden` when token is invalid
+- [ ] Write integration test: GET `/api/flags` returns seeded flags
+- [ ] Write integration test: GET `/api/flags/:key` returns single flag and 404 for missing
+- [ ] Write integration test: POST `/api/flags` creates flag, rejects duplicates (409), rejects invalid input (400)
+- [ ] Write integration test: PUT `/api/flags/:key` updates flag, returns 404 for missing
+- [ ] Write integration test: DELETE `/api/flags/:key` removes flag, returns 404 for missing
+- [ ] Write integration test: auth middleware blocks mutating routes without valid token
+- [ ] Write integration test: GET `/api/flags/resolve` returns resolved key-value map
+- [ ] Set up test helper that creates an in-memory (or temp file) database per test
+- [ ] Verify `npm run build` compiles TypeScript without errors
+- [ ] Verify `docker build` succeeds and container starts and responds on port 3100
+
 **Milestone:** API is fully functional with auth, tested, and containerized.
 
 ## Phase 2 — GitHub Webhook & CI Integration (Week 3)

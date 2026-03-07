@@ -13,6 +13,18 @@ async function start() {
   const db = initDatabase();
   app.decorate('db', db);
 
+  app.setErrorHandler((error, _request, reply) => {
+    if (error.statusCode === 400 && error.code === 'FST_ERR_CTP_INVALID_MEDIA_TYPE') {
+      return reply.status(400).send({ error: 'Unsupported content type', statusCode: 400 });
+    }
+    if (error.statusCode === 400) {
+      return reply.status(400).send({ error: 'Invalid JSON body', statusCode: 400 });
+    }
+    reply
+      .status(error.statusCode ?? 500)
+      .send({ error: error.message ?? 'Internal server error', statusCode: error.statusCode ?? 500 });
+  });
+
   await app.register(flagRoutes, { prefix: '/api/flags' });
 
   await app.listen({ port, host: '0.0.0.0' });

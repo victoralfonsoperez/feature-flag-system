@@ -8,6 +8,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "vitest run",
+    "seed": "tsx src/seed.ts",
+    "clean": "rm -f flags.db flags.db-shm flags.db-wal",
     "lint": "eslint src/"
   },
   "dependencies": {
