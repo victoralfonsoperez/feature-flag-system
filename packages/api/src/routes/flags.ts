@@ -77,6 +77,10 @@ export async function flagRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'key, value, and type are required' });
     }
 
+    if (type !== 'build-time' && type !== 'runtime') {
+      return reply.status(400).send({ error: 'type must be "build-time" or "runtime"' });
+    }
+
     app.db
       .prepare(
         `INSERT INTO flags (key, value, type, environment, description, variants)
