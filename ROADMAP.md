@@ -17,7 +17,7 @@ Get the Flag Service API running, tested, and deployable.
 
 - [x] Add `created_at` column to `flags` table schema
 - [x] Add a seed data script (`packages/api/src/seed.ts`) with sample flags (boolean, string, JSON; build-time & runtime; multiple environments)
-- [ ] Add an npm script `seed` to run the seed file
+- [x] Add an npm script `seed` to run the seed file
 - [ ] Validate `type` field is `build-time` or `runtime` on POST
 - [ ] Validate `environment` field against allowed values (e.g. `development`, `staging`, `production`)
 - [ ] Validate `key` format (non-empty, no spaces, alphanumeric + dashes/underscores)
