@@ -26,7 +26,7 @@ Get the Flag Service API running, tested, and deployable.
 - [x] Handle malformed JSON body gracefully (Fastify content-type parser errors)
 - [x] Verify GET `/api/flags` returns all flags and supports `?type=` and `?env=` filters
 - [x] Verify GET `/api/flags/:key` returns a single flag or 404
-- [ ] Verify POST `/api/flags` creates a flag and returns 201
+- [x] Verify POST `/api/flags` creates a flag and returns 201
 - [ ] Verify PUT `/api/flags/:key` updates a flag and logs to `audit_log`
 - [ ] Verify DELETE `/api/flags/:key` removes a flag and returns 204
 - [ ] Verify audit log entries are written for create, update, and delete actions
