@@ -21,7 +21,7 @@ Get the Flag Service API running, tested, and deployable.
 - [x] Validate `type` field is `build-time` or `runtime` on POST
 - [x] Validate `environment` field against allowed values (e.g. `development`, `staging`, `production`)
 - [x] Validate `key` format (non-empty, no spaces, alphanumeric + dashes/underscores)
-- [ ] Return `409 Conflict` on POST when flag key already exists
+- [x] Return `409 Conflict` on POST when flag key already exists
 - [ ] Return proper error shape (`{ error, statusCode }`) consistently across all error responses
 - [ ] Handle malformed JSON body gracefully (Fastify content-type parser errors)
 - [ ] Verify GET `/api/flags` returns all flags and supports `?type=` and `?env=` filters

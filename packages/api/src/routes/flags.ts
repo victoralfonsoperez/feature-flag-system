@@ -94,6 +94,11 @@ export async function flagRoutes(app: FastifyInstance) {
         .send({ error: `environment must be one of: ${allowedEnvironments.join(', ')}` });
     }
 
+    const existing = app.db.prepare('SELECT key FROM flags WHERE key = ?').get(key);
+    if (existing) {
+      return reply.status(409).send({ error: 'Flag key already exists' });
+    }
+
     app.db
       .prepare(
         `INSERT INTO flags (key, value, type, environment, description, variants)
