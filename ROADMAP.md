@@ -19,7 +19,7 @@ Get the Flag Service API running, tested, and deployable.
 - [x] Add a seed data script (`packages/api/src/seed.ts`) with sample flags (boolean, string, JSON; build-time & runtime; multiple environments)
 - [x] Add an npm script `seed` to run the seed file
 - [x] Validate `type` field is `build-time` or `runtime` on POST
-- [ ] Validate `environment` field against allowed values (e.g. `development`, `staging`, `production`)
+- [x] Validate `environment` field against allowed values (e.g. `development`, `staging`, `production`)
 - [ ] Validate `key` format (non-empty, no spaces, alphanumeric + dashes/underscores)
 - [ ] Return `409 Conflict` on POST when flag key already exists
 - [ ] Return proper error shape (`{ error, statusCode }`) consistently across all error responses

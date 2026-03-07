@@ -81,6 +81,13 @@ export async function flagRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'type must be "build-time" or "runtime"' });
     }
 
+    const allowedEnvironments = ['development', 'staging', 'production'];
+    if (environment && !allowedEnvironments.includes(environment)) {
+      return reply
+        .status(400)
+        .send({ error: `environment must be one of: ${allowedEnvironments.join(', ')}` });
+    }
+
     app.db
       .prepare(
         `INSERT INTO flags (key, value, type, environment, description, variants)
