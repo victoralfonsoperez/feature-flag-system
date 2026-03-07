@@ -46,7 +46,7 @@ Get the Flag Service API running, tested, and deployable.
 - [x] Write integration test: GET `/api/flags/resolve` returns resolved key-value map
 - [x] Set up test helper that creates an in-memory (or temp file) database per test
 - [x] Verify `npm run build` compiles TypeScript without errors
-- [ ] Verify `docker build` succeeds and container starts and responds on port 3100
+- [x] Verify `docker build` succeeds and container starts and responds on port 3100
 
 **Milestone:** API is fully functional with auth, tested, and containerized.
 
