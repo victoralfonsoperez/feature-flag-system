@@ -78,7 +78,7 @@ Build the web dashboard for managing flags.
 - [x] Add vitest and unit tests for the API client (`packages/dashboard/src/api.test.ts`)
 - [x] Refactor `App.tsx` to use the shared API client and imported types
 - [x] Extract `Flag` and shared types into `packages/dashboard/src/types.ts`
-- [ ] Break monolithic `App.tsx` into component files under `packages/dashboard/src/components/`
+- [x] Break monolithic `App.tsx` into component files under `packages/dashboard/src/components/`
 
 ##### Flag list table
 - [ ] Create `FlagTable` component with columns: Key, Value, Type, Environment, Updated
