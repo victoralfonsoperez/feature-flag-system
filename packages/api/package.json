@@ -9,20 +9,22 @@
     "start": "node dist/server.js",
     "test": "vitest run",
     "seed": "tsx src/seed.ts",
+    "seed:admin": "tsx src/seed-admin.ts",
     "clean": "rm -f flags.db flags.db-shm flags.db-wal",
     "lint": "eslint src/"
   },
   "dependencies": {
-    "fastify": "^5.0.0",
+    "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^10.0.0",
-    "better-sqlite3": "^11.0.0"
+    "better-sqlite3": "^11.0.0",
+    "fastify": "^5.0.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",
     "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.7.0",
-    "vitest": "^3.0.0",
-    "eslint": "^9.0.0"
+    "vitest": "^3.0.0"
   }
 }
