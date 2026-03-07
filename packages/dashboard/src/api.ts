@@ -1,3 +1,7 @@
+import type { Flag, Environment, CreateFlagInput, UpdateFlagInput } from './types';
+
+export type { Flag, Environment, CreateFlagInput, UpdateFlagInput };
+
 const BASE_URL = '/api';
 
 export class ApiError extends Error {
@@ -28,39 +32,6 @@ async function request<T>(
 function authHeaders(token: string): HeadersInit {
   return { Authorization: `Bearer ${token}` };
 }
-
-// --- Flag types ---
-
-export type Flag = {
-  key: string;
-  value: string;
-  type: 'build-time' | 'runtime';
-  environment: string;
-  description: string;
-  variants: string | null;
-  created_at: string;
-  updated_at: string;
-  updated_by: string;
-};
-
-export type Environment = 'production' | 'staging' | 'development';
-
-export type CreateFlagInput = {
-  key: string;
-  value: string;
-  type: 'build-time' | 'runtime';
-  environment?: string;
-  description?: string;
-  variants?: string;
-};
-
-export type UpdateFlagInput = {
-  value?: string;
-  description?: string;
-  variants?: string;
-};
-
-// --- API functions ---
 
 export function getFlags(env?: Environment): Promise<Flag[]> {
   const query = env ? `?env=${env}` : '';
