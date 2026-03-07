@@ -23,7 +23,7 @@ Get the Flag Service API running, tested, and deployable.
 - [x] Validate `key` format (non-empty, no spaces, alphanumeric + dashes/underscores)
 - [x] Return `409 Conflict` on POST when flag key already exists
 - [x] Return proper error shape (`{ error, statusCode }`) consistently across all error responses
-- [ ] Handle malformed JSON body gracefully (Fastify content-type parser errors)
+- [x] Handle malformed JSON body gracefully (Fastify content-type parser errors)
 - [ ] Verify GET `/api/flags` returns all flags and supports `?type=` and `?env=` filters
 - [ ] Verify GET `/api/flags/:key` returns a single flag or 404
 - [ ] Verify POST `/api/flags` creates a flag and returns 201
