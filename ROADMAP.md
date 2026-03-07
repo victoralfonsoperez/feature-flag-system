@@ -77,7 +77,7 @@ Build the web dashboard for managing flags.
 - [x] Extract shared API client helper (`packages/dashboard/src/api.ts`) with base URL, auth header, and typed fetch wrappers
 - [x] Add vitest and unit tests for the API client (`packages/dashboard/src/api.test.ts`)
 - [x] Refactor `App.tsx` to use the shared API client and imported types
-- [ ] Extract `Flag` and shared types into `packages/dashboard/src/types.ts`
+- [x] Extract `Flag` and shared types into `packages/dashboard/src/types.ts`
 - [ ] Break monolithic `App.tsx` into component files under `packages/dashboard/src/components/`
 
 ##### Flag list table
