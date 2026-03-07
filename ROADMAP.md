@@ -37,14 +37,14 @@ Get the Flag Service API running, tested, and deployable.
 - [x] Register auth middleware on all mutating routes (POST, PUT, DELETE)
 - [x] Allow unauthenticated access to read routes (GET `/api/flags`, GET `/api/flags/resolve`)
 - [x] Return `401 Unauthorized` when token is missing, `403 Forbidden` when token is invalid
-- [ ] Write integration test: GET `/api/flags` returns seeded flags
-- [ ] Write integration test: GET `/api/flags/:key` returns single flag and 404 for missing
-- [ ] Write integration test: POST `/api/flags` creates flag, rejects duplicates (409), rejects invalid input (400)
-- [ ] Write integration test: PUT `/api/flags/:key` updates flag, returns 404 for missing
-- [ ] Write integration test: DELETE `/api/flags/:key` removes flag, returns 404 for missing
-- [ ] Write integration test: auth middleware blocks mutating routes without valid token
-- [ ] Write integration test: GET `/api/flags/resolve` returns resolved key-value map
-- [ ] Set up test helper that creates an in-memory (or temp file) database per test
+- [x] Write integration test: GET `/api/flags` returns seeded flags
+- [x] Write integration test: GET `/api/flags/:key` returns single flag and 404 for missing
+- [x] Write integration test: POST `/api/flags` creates flag, rejects duplicates (409), rejects invalid input (400)
+- [x] Write integration test: PUT `/api/flags/:key` updates flag, returns 404 for missing
+- [x] Write integration test: DELETE `/api/flags/:key` removes flag, returns 404 for missing
+- [x] Write integration test: auth middleware blocks mutating routes without valid token
+- [x] Write integration test: GET `/api/flags/resolve` returns resolved key-value map
+- [x] Set up test helper that creates an in-memory (or temp file) database per test
 - [x] Verify `npm run build` compiles TypeScript without errors
 - [ ] Verify `docker build` succeeds and container starts and responds on port 3100
 
