@@ -63,7 +63,7 @@ export async function flagRoutes(app: FastifyInstance) {
     const flag = app.db.prepare('SELECT * FROM flags WHERE key = ?').get(key);
 
     if (!flag) {
-      return reply.status(404).send({ error: 'Flag not found' });
+      return reply.status(404).send({ error: 'Flag not found', statusCode: 404 });
     }
     return reply.send(flag);
   });
@@ -74,29 +74,29 @@ export async function flagRoutes(app: FastifyInstance) {
       request.body as Partial<FlagRow>;
 
     if (!key || !value || !type) {
-      return reply.status(400).send({ error: 'key, value, and type are required' });
+      return reply.status(400).send({ error: 'key, value, and type are required', statusCode: 400 });
     }
 
     if (!/^[a-zA-Z0-9_-]+$/.test(key)) {
       return reply
         .status(400)
-        .send({ error: 'key must be alphanumeric with dashes or underscores only' });
+        .send({ error: 'key must be alphanumeric with dashes or underscores only', statusCode: 400 });
     }
 
     if (type !== 'build-time' && type !== 'runtime') {
-      return reply.status(400).send({ error: 'type must be "build-time" or "runtime"' });
+      return reply.status(400).send({ error: 'type must be "build-time" or "runtime"', statusCode: 400 });
     }
 
     const allowedEnvironments = ['development', 'staging', 'production'];
     if (environment && !allowedEnvironments.includes(environment)) {
       return reply
         .status(400)
-        .send({ error: `environment must be one of: ${allowedEnvironments.join(', ')}` });
+        .send({ error: `environment must be one of: ${allowedEnvironments.join(', ')}`, statusCode: 400 });
     }
 
     const existing = app.db.prepare('SELECT key FROM flags WHERE key = ?').get(key);
     if (existing) {
-      return reply.status(409).send({ error: 'Flag key already exists' });
+      return reply.status(409).send({ error: 'Flag key already exists', statusCode: 409 });
     }
 
     app.db
@@ -124,7 +124,7 @@ export async function flagRoutes(app: FastifyInstance) {
       | undefined;
 
     if (!existing) {
-      return reply.status(404).send({ error: 'Flag not found' });
+      return reply.status(404).send({ error: 'Flag not found', statusCode: 404 });
     }
 
     const newValue = value ?? existing.value;
@@ -163,7 +163,7 @@ export async function flagRoutes(app: FastifyInstance) {
       | undefined;
 
     if (!existing) {
-      return reply.status(404).send({ error: 'Flag not found' });
+      return reply.status(404).send({ error: 'Flag not found', statusCode: 404 });
     }
 
     app.db.prepare('DELETE FROM flags WHERE key = ?').run(key);
