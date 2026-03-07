@@ -69,6 +69,64 @@ Build the web dashboard for managing flags.
 | 4 | ~8h | Build flag list table with environment selector, implement create-flag form and inline value editing, add type badges and toggle switch for boolean flags |
 | 5 | ~7h | Add confirmation modal for build-time flag changes (warns it triggers a deploy), build activity log view (reads from `audit_log` table), polish layout, loading states, and error handling |
 
+### Phase 3 — Task Checklist
+
+#### Week 4: Component Architecture & CRUD UI
+
+##### Project setup
+- [ ] Extract shared API client helper (`packages/dashboard/src/api.ts`) with base URL, auth header, and typed fetch wrappers
+- [ ] Extract `Flag` and shared types into `packages/dashboard/src/types.ts`
+- [ ] Break monolithic `App.tsx` into component files under `packages/dashboard/src/components/`
+
+##### Flag list table
+- [ ] Create `FlagTable` component with columns: Key, Value, Type, Environment, Updated
+- [ ] Add type badges with color coding (amber for build-time, blue for runtime)
+- [ ] Add toggle switch for boolean flags (value is `"true"` / `"false"`) that calls PUT on toggle
+- [ ] Add environment selector dropdown that filters the flag list
+- [ ] Add loading skeleton/spinner state while fetching flags
+- [ ] Add empty state when no flags match the current filter
+- [ ] Add error state with retry button when API call fails
+
+##### Create flag form
+- [ ] Create `CreateFlagModal` component with form fields: key, value, type (dropdown), environment (dropdown), description
+- [ ] Add client-side validation matching API rules (key format, required fields, valid type/environment)
+- [ ] Wire form submission to `POST /api/flags` with auth header
+- [ ] Show success feedback and refresh flag list on create
+- [ ] Show error feedback on validation or API errors
+
+##### Inline editing
+- [ ] Add edit action (icon/button) on each flag row that opens an `EditFlagModal`
+- [ ] Pre-populate modal with current flag values (value, description)
+- [ ] Wire save to `PUT /api/flags/:key` with auth header
+- [ ] Show success feedback and refresh flag list on save
+
+##### Delete flag
+- [ ] Add delete action (icon/button) on each flag row
+- [ ] Show confirmation dialog before deleting ("Are you sure you want to delete {key}?")
+- [ ] Wire confirm to `DELETE /api/flags/:key` with auth header
+- [ ] Show success feedback and refresh flag list on delete
+
+#### Week 5: Modals, Activity Log & Polish
+
+##### Build-time flag warning
+- [ ] Add confirmation modal when editing a build-time flag that warns "This will trigger a production rebuild"
+- [ ] Show the modal before the PUT request; only proceed if user confirms
+- [ ] Visually distinguish build-time flags in the table (e.g. deploy icon or warning badge)
+
+##### Activity log view
+- [ ] Add `GET /api/audit-log` endpoint to the API (paginated, filterable by `flag_key`)
+- [ ] Create `AuditLog` component that displays a timeline/table of changes
+- [ ] Show columns: flag key, action (created/updated/deleted), old value, new value, changed by, timestamp
+- [ ] Add a "View history" action on each flag row that filters the log to that flag
+- [ ] Add pagination or "load more" for the activity log
+
+##### Layout & polish
+- [ ] Add a top navigation bar with app title and links (Flags, Activity Log)
+- [ ] Add toast/notification system for success and error feedback
+- [ ] Add responsive layout that works on mobile viewports
+- [ ] Add keyboard shortcut: Escape to close modals
+- [ ] Handle API token configuration (environment variable or settings input for the dashboard)
+
 **Milestone:** Flags can be created, viewed, edited, and deleted entirely from the dashboard.
 
 ## Phase 4 — Client SDK (Week 6)
