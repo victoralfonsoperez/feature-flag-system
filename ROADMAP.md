@@ -20,7 +20,7 @@ Get the Flag Service API running, tested, and deployable.
 - [x] Add an npm script `seed` to run the seed file
 - [x] Validate `type` field is `build-time` or `runtime` on POST
 - [x] Validate `environment` field against allowed values (e.g. `development`, `staging`, `production`)
-- [ ] Validate `key` format (non-empty, no spaces, alphanumeric + dashes/underscores)
+- [x] Validate `key` format (non-empty, no spaces, alphanumeric + dashes/underscores)
 - [ ] Return `409 Conflict` on POST when flag key already exists
 - [ ] Return proper error shape (`{ error, statusCode }`) consistently across all error responses
 - [ ] Handle malformed JSON body gracefully (Fastify content-type parser errors)

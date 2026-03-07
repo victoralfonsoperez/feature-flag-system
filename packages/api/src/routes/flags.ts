@@ -77,6 +77,12 @@ export async function flagRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'key, value, and type are required' });
     }
 
+    if (!/^[a-zA-Z0-9_-]+$/.test(key)) {
+      return reply
+        .status(400)
+        .send({ error: 'key must be alphanumeric with dashes or underscores only' });
+    }
+
     if (type !== 'build-time' && type !== 'runtime') {
       return reply.status(400).send({ error: 'type must be "build-time" or "runtime"' });
     }
