@@ -1,13 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
+import cookie from '@fastify/cookie';
 import { initDatabase } from '../db.js';
 import { flagRoutes } from '../routes/flags.js';
+import { authRoutes } from '../routes/auth.js';
+import { hashPassword } from '../auth/password.js';
+import { createTokenPair } from '../auth/session.js';
 import type { FlagRow } from '../db.js';
-
-const API_TOKEN = 'test-secret-token';
-const auth = { authorization: `Bearer ${API_TOKEN}` };
+import '../types.js';
 
 let app: FastifyInstance;
+let authCookie: string;
+const TEST_EMAIL = 'test@example.com';
 
 function seedFlags(app: FastifyInstance) {
   const insert = app.db.prepare(
@@ -45,15 +49,26 @@ function seedFlags(app: FastifyInstance) {
   return flags;
 }
 
-beforeAll(async () => {
-  process.env.API_TOKEN = API_TOKEN;
+async function createTestUser(app: FastifyInstance): Promise<string> {
+  const passwordHash = await hashPassword('testpass123');
+  const result = app.db
+    .prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)')
+    .run(TEST_EMAIL, passwordHash, 'admin');
+  const userId = result.lastInsertRowid as number;
+  const tokens = createTokenPair(app.db, { id: userId, email: TEST_EMAIL, role: 'admin' });
+  return `access_token=${tokens.accessToken}; refresh_token=${tokens.refreshToken}`;
+}
 
+beforeAll(async () => {
   app = Fastify();
   const db = initDatabase(':memory:');
   app.decorate('db', db);
+  await app.register(cookie);
+  await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(flagRoutes, { prefix: '/api/flags' });
   await app.ready();
 
+  authCookie = await createTestUser(app);
   seedFlags(app);
 });
 
@@ -119,7 +134,7 @@ describe('POST /api/flags', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: auth,
+      headers: { cookie: authCookie },
       payload: { key: 'new_feature', value: 'enabled', type: 'runtime' },
     });
     expect(res.statusCode).toBe(201);
@@ -129,11 +144,18 @@ describe('POST /api/flags', () => {
     expect(flag.environment).toBe('production');
   });
 
+  it('records user email in audit log', async () => {
+    const log = app.db
+      .prepare("SELECT changed_by FROM audit_log WHERE flag_key = 'new_feature' AND action = 'created'")
+      .get() as { changed_by: string };
+    expect(log.changed_by).toBe(TEST_EMAIL);
+  });
+
   it('rejects duplicate key with 409', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: auth,
+      headers: { cookie: authCookie },
       payload: { key: 'new_feature', value: 'v2', type: 'runtime' },
     });
     expect(res.statusCode).toBe(409);
@@ -144,7 +166,7 @@ describe('POST /api/flags', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: auth,
+      headers: { cookie: authCookie },
       payload: { key: 'no_value' },
     });
     expect(res.statusCode).toBe(400);
@@ -155,7 +177,7 @@ describe('POST /api/flags', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: auth,
+      headers: { cookie: authCookie },
       payload: { key: 'invalid key!', value: 'x', type: 'runtime' },
     });
     expect(res.statusCode).toBe(400);
@@ -166,7 +188,7 @@ describe('POST /api/flags', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: auth,
+      headers: { cookie: authCookie },
       payload: { key: 'bad_type', value: 'x', type: 'invalid' },
     });
     expect(res.statusCode).toBe(400);
@@ -177,7 +199,7 @@ describe('POST /api/flags', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: auth,
+      headers: { cookie: authCookie },
       payload: { key: 'bad_env', value: 'x', type: 'runtime', environment: 'invalid' },
     });
     expect(res.statusCode).toBe(400);
@@ -192,18 +214,25 @@ describe('PUT /api/flags/:key', () => {
     const res = await app.inject({
       method: 'PUT',
       url: '/api/flags/enable_dark_mode',
-      headers: auth,
+      headers: { cookie: authCookie },
       payload: { value: 'false' },
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().value).toBe('false');
   });
 
+  it('records user email in audit log on update', async () => {
+    const log = app.db
+      .prepare("SELECT changed_by FROM audit_log WHERE flag_key = 'enable_dark_mode' AND action = 'updated'")
+      .get() as { changed_by: string };
+    expect(log.changed_by).toBe(TEST_EMAIL);
+  });
+
   it('updates flag description without changing value', async () => {
     const res = await app.inject({
       method: 'PUT',
       url: '/api/flags/enable_dark_mode',
-      headers: auth,
+      headers: { cookie: authCookie },
       payload: { description: 'Updated description' },
     });
     expect(res.statusCode).toBe(200);
@@ -215,7 +244,7 @@ describe('PUT /api/flags/:key', () => {
     const res = await app.inject({
       method: 'PUT',
       url: '/api/flags/nonexistent_flag',
-      headers: auth,
+      headers: { cookie: authCookie },
       payload: { value: 'x' },
     });
     expect(res.statusCode).toBe(404);
@@ -227,22 +256,20 @@ describe('PUT /api/flags/:key', () => {
 
 describe('DELETE /api/flags/:key', () => {
   it('deletes an existing flag and returns 204', async () => {
-    // Create a flag to delete
     await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: auth,
+      headers: { cookie: authCookie },
       payload: { key: 'to_delete', value: 'bye', type: 'runtime' },
     });
 
     const res = await app.inject({
       method: 'DELETE',
       url: '/api/flags/to_delete',
-      headers: auth,
+      headers: { cookie: authCookie },
     });
     expect(res.statusCode).toBe(204);
 
-    // Verify it's gone
     const check = await app.inject({ method: 'GET', url: '/api/flags/to_delete' });
     expect(check.statusCode).toBe(404);
   });
@@ -251,7 +278,7 @@ describe('DELETE /api/flags/:key', () => {
     const res = await app.inject({
       method: 'DELETE',
       url: '/api/flags/nonexistent_flag',
-      headers: auth,
+      headers: { cookie: authCookie },
     });
     expect(res.statusCode).toBe(404);
     expect(res.json().error).toBe('Flag not found');
@@ -261,7 +288,7 @@ describe('DELETE /api/flags/:key', () => {
 // ── Auth middleware blocks mutating routes ───────────────────────────────
 
 describe('auth middleware blocks mutating routes without valid token', () => {
-  it('POST returns 401 without token', async () => {
+  it('POST returns 401 without auth', async () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/flags',
@@ -270,7 +297,7 @@ describe('auth middleware blocks mutating routes without valid token', () => {
     expect(res.statusCode).toBe(401);
   });
 
-  it('PUT returns 401 without token', async () => {
+  it('PUT returns 401 without auth', async () => {
     const res = await app.inject({
       method: 'PUT',
       url: '/api/flags/enable_dark_mode',
@@ -279,22 +306,12 @@ describe('auth middleware blocks mutating routes without valid token', () => {
     expect(res.statusCode).toBe(401);
   });
 
-  it('DELETE returns 401 without token', async () => {
+  it('DELETE returns 401 without auth', async () => {
     const res = await app.inject({
       method: 'DELETE',
       url: '/api/flags/enable_dark_mode',
     });
     expect(res.statusCode).toBe(401);
-  });
-
-  it('POST returns 403 with wrong token', async () => {
-    const res = await app.inject({
-      method: 'POST',
-      url: '/api/flags',
-      payload: { key: 'blocked2', value: 'x', type: 'runtime' },
-      headers: { authorization: 'Bearer wrong' },
-    });
-    expect(res.statusCode).toBe(403);
   });
 
   it('GET routes remain accessible without auth', async () => {
@@ -343,9 +360,7 @@ describe('GET /api/flags/resolve', () => {
     const resolved1 = res1.json() as Record<string, string>;
     const resolved2 = res2.json() as Record<string, string>;
 
-    // Same user_id should produce same variant
     expect(resolved1.cta_button_color).toBe(resolved2.cta_button_color);
-    // Variant should be one of the defined values
     expect(['blue', 'green', 'orange']).toContain(resolved1.cta_button_color);
   });
 

@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { triggerGitHubRebuild } from '../webhook.js';
 import type { FlagRow } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
+import '../types.js';
 
 export async function flagRoutes(app: FastifyInstance) {
   // GET /api/flags — list all flags, filterable by type and env
@@ -109,7 +110,7 @@ export async function flagRoutes(app: FastifyInstance) {
 
     app.db
       .prepare('INSERT INTO audit_log (flag_key, action, new_value, changed_by) VALUES (?, ?, ?, ?)')
-      .run(key, 'created', value, 'api-token');
+      .run(key, 'created', value, request.user?.email ?? 'unknown');
 
     const created = app.db.prepare('SELECT * FROM flags WHERE key = ?').get(key);
     return reply.status(201).send(created);
@@ -132,19 +133,21 @@ export async function flagRoutes(app: FastifyInstance) {
     const newDescription = description ?? existing.description;
     const newVariants = variants !== undefined ? variants : existing.variants;
 
+    const changedBy = request.user?.email ?? 'unknown';
+
     app.db
       .prepare(
         `UPDATE flags
-         SET value = ?, description = ?, variants = ?, updated_at = datetime('now')
+         SET value = ?, description = ?, variants = ?, updated_at = datetime('now'), updated_by = ?
          WHERE key = ?`
       )
-      .run(newValue, newDescription, newVariants, key);
+      .run(newValue, newDescription, newVariants, changedBy, key);
 
     app.db
       .prepare(
         'INSERT INTO audit_log (flag_key, action, old_value, new_value, changed_by) VALUES (?, ?, ?, ?, ?)'
       )
-      .run(key, 'updated', existing.value, newValue, 'api-token');
+      .run(key, 'updated', existing.value, newValue, changedBy);
 
     // Trigger rebuild if build-time flag changed
     if (existing.type === 'build-time' && newValue !== existing.value) {
@@ -171,7 +174,7 @@ export async function flagRoutes(app: FastifyInstance) {
 
     app.db
       .prepare('INSERT INTO audit_log (flag_key, action, old_value, changed_by) VALUES (?, ?, ?, ?)')
-      .run(key, 'deleted', existing.value, 'api-token');
+      .run(key, 'deleted', existing.value, request.user?.email ?? 'unknown');
 
     return reply.status(204).send();
   });

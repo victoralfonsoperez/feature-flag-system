@@ -1,14 +1,19 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import cookie from '@fastify/cookie';
 import { initDatabase } from './db.js';
 import { flagRoutes } from './routes/flags.js';
+import { authRoutes } from './routes/auth.js';
+import { tokenRoutes } from './routes/tokens.js';
+import './types.js';
 
 const port = Number(process.env.PORT) || 3100;
 
 async function start() {
   const app = Fastify({ logger: true });
 
-  await app.register(cors, { origin: true });
+  await app.register(cors, { origin: true, credentials: true });
+  await app.register(cookie);
 
   const db = initDatabase();
   app.decorate('db', db);
@@ -25,6 +30,8 @@ async function start() {
       .send({ error: error.message ?? 'Internal server error', statusCode: error.statusCode ?? 500 });
   });
 
+  await app.register(authRoutes, { prefix: '/api/auth' });
+  await app.register(tokenRoutes, { prefix: '/api/tokens' });
   await app.register(flagRoutes, { prefix: '/api/flags' });
 
   await app.listen({ port, host: '0.0.0.0' });

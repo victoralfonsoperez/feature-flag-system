@@ -1,19 +1,18 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
+import cookie from '@fastify/cookie';
 import { initDatabase } from '../db.js';
-import { flagRoutes } from '../routes/flags.js';
-
-const API_TOKEN = 'test-secret-token';
+import { authRoutes } from '../routes/auth.js';
+import '../types.js';
 
 let app: FastifyInstance;
 
 beforeAll(async () => {
-  process.env.API_TOKEN = API_TOKEN;
-
   app = Fastify();
   const db = initDatabase(':memory:');
   app.decorate('db', db);
-  await app.register(flagRoutes, { prefix: '/api/flags' });
+  await app.register(cookie);
+  await app.register(authRoutes, { prefix: '/api/auth' });
   await app.ready();
 });
 
@@ -21,118 +20,194 @@ afterAll(async () => {
   await app.close();
 });
 
-describe('GET routes allow unauthenticated access', () => {
-  it('GET /api/flags returns 200 without auth', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/flags' });
-    expect(res.statusCode).toBe(200);
-  });
+function getCookieValue(res: { cookies: unknown[] }, name: string): string | undefined {
+  const cookies = res.cookies as { name: string; value: string }[];
+  return cookies.find((c) => c.name === name)?.value;
+}
 
-  it('GET /api/flags/resolve returns 200 without auth', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/flags/resolve' });
-    expect(res.statusCode).toBe(200);
-  });
+function getCookie(res: { cookies: unknown[] }, name: string) {
+  const cookies = res.cookies as { name: string; value: string; httpOnly?: boolean; sameSite?: string; path?: string }[];
+  return cookies.find((c) => c.name === name);
+}
 
-  it('GET /api/flags/:key returns 404 without auth (not 401)', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/flags/nonexistent' });
-    expect(res.statusCode).toBe(404);
+function authCookieHeader(res: { cookies: unknown[] }): string {
+  const access = getCookieValue(res, 'access_token');
+  const refresh = getCookieValue(res, 'refresh_token');
+  const parts: string[] = [];
+  if (access) parts.push(`access_token=${access}`);
+  if (refresh) parts.push(`refresh_token=${refresh}`);
+  return parts.join('; ');
+}
+
+describe('GET /api/auth/status', () => {
+  it('returns setupRequired: true when no users exist', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/auth/status' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ setupRequired: true });
   });
 });
 
-describe('mutating routes require auth', () => {
-  const flag = { key: 'test-flag', value: 'on', type: 'runtime' };
-
-  it('POST returns 401 without auth header', async () => {
+describe('POST /api/auth/setup', () => {
+  it('creates first admin user and sets JWT cookies', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/api/flags',
-      payload: flag,
+      url: '/api/auth/setup',
+      payload: { email: 'admin@test.com', password: 'password123' },
     });
-    expect(res.statusCode).toBe(401);
-    expect(res.json().error).toMatch(/Missing Authorization/);
+    expect(res.statusCode).toBe(200);
+    expect(res.json().user.email).toBe('admin@test.com');
+    expect(res.json().user.role).toBe('admin');
+
+    const accessCookie = getCookie(res, 'access_token');
+    const refreshCookie = getCookie(res, 'refresh_token');
+    expect(accessCookie).toBeDefined();
+    expect(refreshCookie).toBeDefined();
+    expect(accessCookie!.httpOnly).toBe(true);
+    expect(refreshCookie!.httpOnly).toBe(true);
+    expect(accessCookie!.sameSite).toBe('Lax');
+    expect(refreshCookie!.sameSite).toBe('Lax');
+    expect(accessCookie!.path).toBe('/');
   });
 
-  it('POST returns 401 with malformed auth header', async () => {
+  it('returns 403 if users already exist', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/api/flags',
-      payload: flag,
-      headers: { authorization: 'Basic abc123' },
-    });
-    expect(res.statusCode).toBe(401);
-  });
-
-  it('POST returns 403 with invalid token', async () => {
-    const res = await app.inject({
-      method: 'POST',
-      url: '/api/flags',
-      payload: flag,
-      headers: { authorization: 'Bearer wrong-token' },
+      url: '/api/auth/setup',
+      payload: { email: 'another@test.com', password: 'pass' },
     });
     expect(res.statusCode).toBe(403);
+    expect(res.json().error).toMatch(/already completed/i);
   });
 
-  it('POST returns 201 with valid token', async () => {
+  it('returns 400 if email or password missing', async () => {
     const res = await app.inject({
       method: 'POST',
-      url: '/api/flags',
-      payload: flag,
-      headers: { authorization: `Bearer ${API_TOKEN}` },
+      url: '/api/auth/setup',
+      payload: { email: 'no-pass@test.com' },
     });
-    expect(res.statusCode).toBe(201);
-    expect(res.json().key).toBe('test-flag');
-  });
-
-  it('PUT returns 401 without auth header', async () => {
-    const res = await app.inject({
-      method: 'PUT',
-      url: '/api/flags/test-flag',
-      payload: { value: 'off' },
-    });
-    expect(res.statusCode).toBe(401);
-  });
-
-  it('PUT returns 200 with valid token', async () => {
-    const res = await app.inject({
-      method: 'PUT',
-      url: '/api/flags/test-flag',
-      payload: { value: 'off' },
-      headers: { authorization: `Bearer ${API_TOKEN}` },
-    });
-    expect(res.statusCode).toBe(200);
-    expect(res.json().value).toBe('off');
-  });
-
-  it('DELETE returns 401 without auth header', async () => {
-    const res = await app.inject({
-      method: 'DELETE',
-      url: '/api/flags/test-flag',
-    });
-    expect(res.statusCode).toBe(401);
-  });
-
-  it('DELETE returns 204 with valid token', async () => {
-    const res = await app.inject({
-      method: 'DELETE',
-      url: '/api/flags/test-flag',
-      headers: { authorization: `Bearer ${API_TOKEN}` },
-    });
-    expect(res.statusCode).toBe(204);
+    expect(res.statusCode).toBe(400);
   });
 });
 
-describe('audit log records changed_by', () => {
-  it('sets changed_by to api-token on create', async () => {
-    await app.inject({
+describe('GET /api/auth/status after setup', () => {
+  it('returns setupRequired: false', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/auth/status' });
+    expect(res.json()).toEqual({ setupRequired: false });
+  });
+});
+
+describe('POST /api/auth/login', () => {
+  it('returns user and sets JWT cookies on valid credentials', async () => {
+    const res = await app.inject({
       method: 'POST',
-      url: '/api/flags',
-      payload: { key: 'audit-test', value: 'v1', type: 'runtime' },
-      headers: { authorization: `Bearer ${API_TOKEN}` },
+      url: '/api/auth/login',
+      payload: { email: 'admin@test.com', password: 'password123' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().user.email).toBe('admin@test.com');
+
+    expect(getCookieValue(res, 'access_token')).toBeDefined();
+    expect(getCookieValue(res, 'refresh_token')).toBeDefined();
+  });
+
+  it('returns 401 on wrong password', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: 'admin@test.com', password: 'wrongpass' },
+    });
+    expect(res.statusCode).toBe(401);
+    expect(res.json().error).toMatch(/invalid credentials/i);
+  });
+
+  it('returns 401 for non-existent user', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: 'nobody@test.com', password: 'pass' },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 400 if email or password missing', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: 'admin@test.com' },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+});
+
+describe('GET /api/auth/me', () => {
+  it('returns user info when authenticated via access token cookie', async () => {
+    const loginRes = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: 'admin@test.com', password: 'password123' },
     });
 
-    const row = app.db
-      .prepare('SELECT changed_by FROM audit_log WHERE flag_key = ?')
-      .get('audit-test') as { changed_by: string };
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/auth/me',
+      headers: { cookie: authCookieHeader(loginRes) },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().user.email).toBe('admin@test.com');
+  });
 
-    expect(row.changed_by).toBe('api-token');
+  it('returns 401 without any cookies', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/auth/me' });
+    expect(res.statusCode).toBe(401);
+  });
+});
+
+describe('POST /api/auth/refresh', () => {
+  it('issues a new access token given a valid refresh token', async () => {
+    const loginRes = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: 'admin@test.com', password: 'password123' },
+    });
+    const refreshCookie = `refresh_token=${getCookieValue(loginRes, 'refresh_token')}`;
+
+    const refreshRes = await app.inject({
+      method: 'POST',
+      url: '/api/auth/refresh',
+      headers: { cookie: refreshCookie },
+    });
+    expect(refreshRes.statusCode).toBe(200);
+    expect(getCookieValue(refreshRes, 'access_token')).toBeDefined();
+    expect(refreshRes.json().user.email).toBe('admin@test.com');
+  });
+
+  it('returns 401 without refresh token', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/auth/refresh' });
+    expect(res.statusCode).toBe(401);
+  });
+});
+
+describe('POST /api/auth/logout', () => {
+  it('revokes refresh token and clears cookies', async () => {
+    const loginRes = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      payload: { email: 'admin@test.com', password: 'password123' },
+    });
+
+    const logoutRes = await app.inject({
+      method: 'POST',
+      url: '/api/auth/logout',
+      headers: { cookie: authCookieHeader(loginRes) },
+    });
+    expect(logoutRes.statusCode).toBe(200);
+
+    // Refresh token should be revoked — refresh should fail
+    const refreshRes = await app.inject({
+      method: 'POST',
+      url: '/api/auth/refresh',
+      headers: { cookie: `refresh_token=${getCookieValue(loginRes, 'refresh_token')}` },
+    });
+    expect(refreshRes.statusCode).toBe(401);
   });
 });

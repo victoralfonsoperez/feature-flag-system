@@ -48,7 +48,7 @@ describe('getFlags', () => {
 
     const result = await getFlags();
 
-    expect(mockFetch).toHaveBeenCalledWith('/api/flags', undefined);
+    expect(mockFetch).toHaveBeenCalledWith('/api/flags', { credentials: 'include' });
     expect(result).toEqual([mockFlag]);
   });
 
@@ -57,7 +57,7 @@ describe('getFlags', () => {
 
     await getFlags('staging');
 
-    expect(mockFetch).toHaveBeenCalledWith('/api/flags?env=staging', undefined);
+    expect(mockFetch).toHaveBeenCalledWith('/api/flags?env=staging', { credentials: 'include' });
   });
 
   it('throws ApiError on failure', async () => {
@@ -76,7 +76,7 @@ describe('getFlag', () => {
 
     const result = await getFlag('test-flag');
 
-    expect(mockFetch).toHaveBeenCalledWith('/api/flags/test-flag', undefined);
+    expect(mockFetch).toHaveBeenCalledWith('/api/flags/test-flag', { credentials: 'include' });
     expect(result).toEqual(mockFlag);
   });
 
@@ -87,7 +87,7 @@ describe('getFlag', () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/flags/flag%20with%20spaces',
-      undefined,
+      { credentials: 'include' },
     );
   });
 
@@ -109,20 +109,17 @@ describe('createFlag', () => {
     environment: 'development',
     description: 'New flag',
   };
-  const token = 'test-token-123';
 
-  it('sends POST with auth header and body', async () => {
+  it('sends POST with body (cookie-based auth)', async () => {
     const created = { ...mockFlag, ...input };
     mockFetch.mockResolvedValue(jsonResponse(created, 201));
 
-    const result = await createFlag(input, token);
+    const result = await createFlag(input);
 
     expect(mockFetch).toHaveBeenCalledWith('/api/flags', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer test-token-123',
-      },
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(input),
     });
     expect(result.key).toBe('new-flag');
@@ -131,7 +128,7 @@ describe('createFlag', () => {
   it('throws ApiError on 409 conflict', async () => {
     mockFetch.mockResolvedValue(errorResponse(409, 'Flag already exists'));
 
-    await expect(createFlag(input, token)).rejects.toMatchObject({
+    await expect(createFlag(input)).rejects.toMatchObject({
       status: 409,
       message: 'Flag already exists',
     });
@@ -139,10 +136,10 @@ describe('createFlag', () => {
 
   it('throws ApiError on 401 unauthorized', async () => {
     mockFetch.mockResolvedValue(
-      errorResponse(401, 'Missing Authorization header'),
+      errorResponse(401, 'Authentication required'),
     );
 
-    await expect(createFlag(input, 'bad')).rejects.toMatchObject({
+    await expect(createFlag(input)).rejects.toMatchObject({
       status: 401,
     });
   });
@@ -150,53 +147,48 @@ describe('createFlag', () => {
 
 describe('updateFlag', () => {
   const input: UpdateFlagInput = { value: 'updated-value' };
-  const token = 'test-token-123';
 
-  it('sends PUT with auth header and body', async () => {
+  it('sends PUT with body (cookie-based auth)', async () => {
     const updated = { ...mockFlag, value: 'updated-value' };
     mockFetch.mockResolvedValue(jsonResponse(updated));
 
-    const result = await updateFlag('test-flag', input, token);
+    const result = await updateFlag('test-flag', input);
 
     expect(mockFetch).toHaveBeenCalledWith('/api/flags/test-flag', {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer test-token-123',
-      },
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify(input),
     });
     expect(result.value).toBe('updated-value');
   });
 
-  it('throws ApiError on 403 forbidden', async () => {
-    mockFetch.mockResolvedValue(errorResponse(403, 'Invalid API token'));
+  it('throws ApiError on 401 unauthorized', async () => {
+    mockFetch.mockResolvedValue(errorResponse(401, 'Authentication required'));
 
-    await expect(updateFlag('test-flag', input, token)).rejects.toMatchObject({
-      status: 403,
-      message: 'Invalid API token',
+    await expect(updateFlag('test-flag', input)).rejects.toMatchObject({
+      status: 401,
+      message: 'Authentication required',
     });
   });
 });
 
 describe('deleteFlag', () => {
-  const token = 'test-token-123';
-
-  it('sends DELETE with auth header', async () => {
+  it('sends DELETE (cookie-based auth)', async () => {
     mockFetch.mockResolvedValue(new Response(null, { status: 204 }));
 
-    await deleteFlag('test-flag', token);
+    await deleteFlag('test-flag');
 
     expect(mockFetch).toHaveBeenCalledWith('/api/flags/test-flag', {
       method: 'DELETE',
-      headers: { Authorization: 'Bearer test-token-123' },
+      credentials: 'include',
     });
   });
 
   it('returns undefined on 204', async () => {
     mockFetch.mockResolvedValue(new Response(null, { status: 204 }));
 
-    const result = await deleteFlag('test-flag', token);
+    const result = await deleteFlag('test-flag');
 
     expect(result).toBeUndefined();
   });
