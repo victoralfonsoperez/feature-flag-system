@@ -13,7 +13,7 @@ async function start() {
   const db = initDatabase();
   app.decorate('db', db);
 
-  app.setErrorHandler((error, _request, reply) => {
+  app.setErrorHandler((error: { statusCode?: number; code?: string; message?: string }, _request, reply) => {
     if (error.statusCode === 400 && error.code === 'FST_ERR_CTP_INVALID_MEDIA_TYPE') {
       return reply.status(400).send({ error: 'Unsupported content type', statusCode: 400 });
     }
