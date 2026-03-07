@@ -1,17 +1,5 @@
 import { useEffect, useState } from 'react';
-
-type Flag = {
-  key: string;
-  value: string;
-  type: 'build-time' | 'runtime';
-  environment: string;
-  description: string;
-  variants: string | null;
-  updated_at: string;
-  updated_by: string;
-};
-
-type Environment = 'production' | 'staging' | 'development';
+import { getFlags, type Flag, type Environment } from './api';
 
 export default function App() {
   const [flags, setFlags] = useState<Flag[]>([]);
@@ -20,13 +8,10 @@ export default function App() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/flags?env=${environment}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setFlags(data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    getFlags(environment)
+      .then((data) => setFlags(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [environment]);
 
   return (
