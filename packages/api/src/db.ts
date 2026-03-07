@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'node:path';
 
-export function initDatabase(dbPath?: string) {
+export function initDatabase(dbPath?: string): Database.Database {
   const resolvedPath = dbPath ?? path.join(process.cwd(), 'flags.db');
   const db = new Database(resolvedPath);
 

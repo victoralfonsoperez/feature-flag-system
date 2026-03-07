@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { triggerGitHubRebuild } from '../webhook.js';
 import type { FlagRow } from '../db.js';
+import { requireAuth } from '../middleware/auth.js';
 
 export async function flagRoutes(app: FastifyInstance) {
   // GET /api/flags — list all flags, filterable by type and env
@@ -69,7 +70,7 @@ export async function flagRoutes(app: FastifyInstance) {
   });
 
   // POST /api/flags — create a new flag
-  app.post('/', async (request: FastifyRequest, reply: FastifyReply) => {
+  app.post('/', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { key, value, type, environment, description, variants } =
       request.body as Partial<FlagRow>;
 
@@ -107,15 +108,15 @@ export async function flagRoutes(app: FastifyInstance) {
       .run(key, value, type, environment ?? 'production', description ?? '', variants ?? null);
 
     app.db
-      .prepare('INSERT INTO audit_log (flag_key, action, new_value) VALUES (?, ?, ?)')
-      .run(key, 'created', value);
+      .prepare('INSERT INTO audit_log (flag_key, action, new_value, changed_by) VALUES (?, ?, ?, ?)')
+      .run(key, 'created', value, 'api-token');
 
     const created = app.db.prepare('SELECT * FROM flags WHERE key = ?').get(key);
     return reply.status(201).send(created);
   });
 
   // PUT /api/flags/:key — update a flag
-  app.put('/:key', async (request: FastifyRequest, reply: FastifyReply) => {
+  app.put('/:key', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { key } = request.params as { key: string };
     const { value, description, variants } = request.body as Partial<FlagRow>;
 
@@ -141,9 +142,9 @@ export async function flagRoutes(app: FastifyInstance) {
 
     app.db
       .prepare(
-        'INSERT INTO audit_log (flag_key, action, old_value, new_value) VALUES (?, ?, ?, ?)'
+        'INSERT INTO audit_log (flag_key, action, old_value, new_value, changed_by) VALUES (?, ?, ?, ?, ?)'
       )
-      .run(key, 'updated', existing.value, newValue);
+      .run(key, 'updated', existing.value, newValue, 'api-token');
 
     // Trigger rebuild if build-time flag changed
     if (existing.type === 'build-time' && newValue !== existing.value) {
@@ -155,7 +156,7 @@ export async function flagRoutes(app: FastifyInstance) {
   });
 
   // DELETE /api/flags/:key — remove a flag
-  app.delete('/:key', async (request: FastifyRequest, reply: FastifyReply) => {
+  app.delete('/:key', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { key } = request.params as { key: string };
 
     const existing = app.db.prepare('SELECT * FROM flags WHERE key = ?').get(key) as
@@ -169,8 +170,8 @@ export async function flagRoutes(app: FastifyInstance) {
     app.db.prepare('DELETE FROM flags WHERE key = ?').run(key);
 
     app.db
-      .prepare('INSERT INTO audit_log (flag_key, action, old_value) VALUES (?, ?, ?)')
-      .run(key, 'deleted', existing.value);
+      .prepare('INSERT INTO audit_log (flag_key, action, old_value, changed_by) VALUES (?, ?, ?, ?)')
+      .run(key, 'deleted', existing.value, 'api-token');
 
     return reply.status(204).send();
   });

@@ -55,6 +55,27 @@ npm run dev -w packages/api
 npm run dev -w packages/dashboard
 ```
 
+## Docker
+
+Build and run the API as a container:
+
+```bash
+docker build -t feature-flag-api .
+docker run -p 3100:3100 -e API_TOKEN=your-secret-token feature-flag-api
+```
+
+The API will be available at `http://localhost:3100`. The image uses a multi-stage build — native dependencies (`better-sqlite3`) are compiled in a build stage, and only the runtime artifacts are copied to the final slim image.
+
+### Environment Variables
+
+| Variable | Description | Required |
+|---|---|---|
+| `API_TOKEN` | Bearer token for authenticating mutating requests (POST, PUT, DELETE) | Yes |
+| `PORT` | Port to listen on (default: `3100`) | No |
+| `GITHUB_PAT` | GitHub Personal Access Token for webhook dispatch | No |
+| `GITHUB_OWNER` | GitHub repository owner for webhook dispatch | No |
+| `GITHUB_REPO` | GitHub repository name for webhook dispatch | No |
+
 ## Roadmap
 
 See [ROADMAP.md](./ROADMAP.md) for the full implementation plan — 7 phases over 12 weeks (~81 hours total at 5–10h/week).
