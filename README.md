@@ -38,6 +38,7 @@ A self-hosted feature flag system with build-time and runtime flag support, GitH
 ## Getting Started
 
 ```bash
+nvm use            # switch to the required Node version (see .nvmrc)
 npm install
 npm run dev        # start all packages in dev mode
 ```
