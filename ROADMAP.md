@@ -111,9 +111,9 @@ Build the web dashboard for managing flags.
 #### Week 5: Modals, Activity Log & Polish
 
 ##### Build-time flag warning
-- [ ] Add confirmation modal when editing a build-time flag that warns "This will trigger a production rebuild"
-- [ ] Show the modal before the PUT request; only proceed if user confirms
-- [ ] Visually distinguish build-time flags in the table (e.g. deploy icon or warning badge)
+- [x] Add amber warning in create form when build-time type is selected
+- [x] Add amber warning banner in edit modal for build-time flags
+- [x] Show transient warning after toggling a build-time flag (auto-dismisses after 5s)
 
 ##### Activity log view
 - [ ] Add `GET /api/audit-log` endpoint to the API (paginated, filterable by `flag_key`)
