@@ -97,10 +97,10 @@ Build the web dashboard for managing flags.
 - [x] Show error feedback on validation or API errors
 
 ##### Inline editing
-- [ ] Add edit action (icon/button) on each flag row that opens an `EditFlagModal`
-- [ ] Pre-populate modal with current flag values (value, description)
-- [ ] Wire save to `PUT /api/flags/:key` with auth header
-- [ ] Show success feedback and refresh flag list on save
+- [x] Add edit action (icon/button) on each flag row that opens an `EditFlagModal`
+- [x] Pre-populate modal with current flag values (value, description)
+- [x] Wire save to `PUT /api/flags/:key` with auth header
+- [x] Show success feedback and refresh flag list on save
 
 ##### Delete flag
 - [ ] Add delete action (icon/button) on each flag row

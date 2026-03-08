@@ -6,12 +6,13 @@ type FlagTableProps = {
   error: string | null;
   onRetry: () => void;
   onToggle: (key: string, newValue: string) => void;
+  onEdit: (flag: Flag) => void;
 };
 
 function SkeletonRow() {
   return (
     <tr className="border-b border-gray-100">
-      {Array.from({ length: 5 }, (_, i) => (
+      {Array.from({ length: 6 }, (_, i) => (
         <td key={i} className="px-4 py-3">
           <div className="h-4 bg-gray-200 rounded animate-pulse" />
         </td>
@@ -40,7 +41,7 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: () =>
   );
 }
 
-export default function FlagTable({ flags, loading, error, onRetry, onToggle }: FlagTableProps) {
+export default function FlagTable({ flags, loading, error, onRetry, onToggle, onEdit }: FlagTableProps) {
   if (loading) {
     return (
       <div className="w-full bg-white rounded-lg border border-gray-200" aria-busy="true">
@@ -52,6 +53,7 @@ export default function FlagTable({ flags, loading, error, onRetry, onToggle }: 
               <th className="px-4 py-3">Type</th>
               <th className="px-4 py-3">Environment</th>
               <th className="px-4 py-3">Updated</th>
+              <th className="px-4 py-3"></th>
             </tr>
           </thead>
           <tbody>
@@ -126,6 +128,14 @@ export default function FlagTable({ flags, loading, error, onRetry, onToggle }: 
               </td>
               <td className="px-4 py-3 text-sm">{flag.environment}</td>
               <td className="px-4 py-3 text-sm text-gray-500">{flag.updated_at}</td>
+              <td className="px-4 py-3 text-right">
+                <button
+                  onClick={() => onEdit(flag)}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  Edit
+                </button>
+              </td>
             </tr>
           );
         })}

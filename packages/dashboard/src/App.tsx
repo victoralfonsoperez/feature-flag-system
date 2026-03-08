@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { getFlags, getAuthStatus, updateFlag, createFlag } from './api';
-import type { Flag, Environment, CreateFlagInput } from './types';
+import type { Flag, Environment, CreateFlagInput, UpdateFlagInput } from './types';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import Header from './components/Header';
 import FlagTable from './components/FlagTable';
 import CreateFlagForm from './components/CreateFlagForm';
+import EditFlagModal from './components/EditFlagModal';
 import LoginForm from './components/LoginForm';
 import SetupForm from './components/SetupForm';
 import TokenManager from './components/TokenManager';
@@ -18,6 +19,7 @@ function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [setupRequired, setSetupRequired] = useState<boolean | null>(null);
   const [view, setView] = useState<'flags' | 'tokens' | 'users'>('flags');
+  const [editingFlag, setEditingFlag] = useState<Flag | null>(null);
 
   useEffect(() => {
     getAuthStatus()
@@ -56,6 +58,11 @@ function Dashboard() {
     setFlags(data);
   }
 
+  async function handleEditFlag(key: string, input: UpdateFlagInput) {
+    const updated = await updateFlag(key, input);
+    setFlags((prev) => prev.map((f) => (f.key === key ? updated : f)));
+  }
+
   if (isLoading || setupRequired === null) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50"><p className="text-gray-500">Loading...</p></div>;
   }
@@ -75,7 +82,14 @@ function Dashboard() {
         {view === 'flags' ? (
           <>
             <CreateFlagForm onSubmit={handleCreateFlag} />
-            <FlagTable flags={flags} loading={loading} error={error} onRetry={handleRetry} onToggle={handleToggle} />
+            <FlagTable flags={flags} loading={loading} error={error} onRetry={handleRetry} onToggle={handleToggle} onEdit={setEditingFlag} />
+            {editingFlag && (
+              <EditFlagModal
+                flag={editingFlag}
+                onSave={handleEditFlag}
+                onClose={() => setEditingFlag(null)}
+              />
+            )}
           </>
         ) : view === 'tokens' ? (
           <TokenManager />
