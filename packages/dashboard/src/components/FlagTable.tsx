@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import type { Flag } from '../types';
 
 type FlagTableProps = {
@@ -43,6 +44,16 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: () =>
 }
 
 export default function FlagTable({ flags, loading, error, onRetry, onToggle, onEdit, onDelete }: FlagTableProps) {
+  const [buildTimeWarning, setBuildTimeWarning] = useState<string | null>(null);
+
+  const handleToggle = useCallback((flag: Flag, newValue: string) => {
+    onToggle(flag.key, newValue);
+    if (flag.type === 'build-time') {
+      setBuildTimeWarning(flag.key);
+      setTimeout(() => setBuildTimeWarning(null), 5000);
+    }
+  }, [onToggle]);
+
   if (loading) {
     return (
       <div className="w-full bg-white rounded-lg border border-gray-200" aria-busy="true">
@@ -90,6 +101,12 @@ export default function FlagTable({ flags, loading, error, onRetry, onToggle, on
   }
 
   return (
+    <div>
+      {buildTimeWarning && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-md px-3 py-2 mb-3">
+          ⚠ Build-time flag &ldquo;{buildTimeWarning}&rdquo; was updated. Changes will take effect after a rebuild.
+        </div>
+      )}
     <table className="w-full bg-white rounded-lg border border-gray-200">
       <thead>
         <tr className="border-b border-gray-200 text-left text-sm text-gray-600">
@@ -110,7 +127,7 @@ export default function FlagTable({ flags, loading, error, onRetry, onToggle, on
                 {isBool ? (
                   <ToggleSwitch
                     checked={flag.value === 'true'}
-                    onChange={() => onToggle(flag.key, flag.value === 'true' ? 'false' : 'true')}
+                    onChange={() => handleToggle(flag, flag.value === 'true' ? 'false' : 'true')}
                   />
                 ) : (
                   flag.value
@@ -148,5 +165,6 @@ export default function FlagTable({ flags, loading, error, onRetry, onToggle, on
         })}
       </tbody>
     </table>
+    </div>
   );
 }

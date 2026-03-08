@@ -1,5 +1,5 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { describe, it, expect, afterEach, vi, beforeEach } from 'vitest';
+import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
 import FlagTable from './FlagTable';
 import type { Flag } from '../types';
 
@@ -155,5 +155,53 @@ describe('FlagTable', () => {
     const deleteButtons = screen.getAllByText('Delete');
     fireEvent.click(deleteButtons[0]);
     expect(onDelete).toHaveBeenCalledWith(mockFlags[0]);
+  });
+
+  describe('build-time toggle warning', () => {
+    const buildTimeBoolFlag: Flag = {
+      key: 'enable-ssr',
+      value: 'true',
+      type: 'build-time',
+      environment: 'production',
+      description: 'Enable SSR',
+      variants: null,
+      created_at: '2026-01-01T00:00:00Z',
+      updated_at: '2026-01-15T00:00:00Z',
+      updated_by: 'api-token',
+    };
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('shows transient warning after toggling a build-time flag', () => {
+      const onToggle = vi.fn();
+      render(<FlagTable {...defaultProps} flags={[buildTimeBoolFlag]} onToggle={onToggle} />);
+      const toggle = screen.getByRole('switch');
+      fireEvent.click(toggle);
+      expect(onToggle).toHaveBeenCalledWith('enable-ssr', 'false');
+      expect(screen.getByText(/Changes will take effect after a rebuild/)).toBeDefined();
+    });
+
+    it('auto-dismisses the warning after 5 seconds', () => {
+      const onToggle = vi.fn();
+      render(<FlagTable {...defaultProps} flags={[buildTimeBoolFlag]} onToggle={onToggle} />);
+      fireEvent.click(screen.getByRole('switch'));
+      expect(screen.getByText(/Changes will take effect after a rebuild/)).toBeDefined();
+      act(() => { vi.advanceTimersByTime(5000); });
+      expect(screen.queryByText(/Changes will take effect after a rebuild/)).toBeNull();
+    });
+
+    it('does not show warning after toggling a runtime flag', () => {
+      const onToggle = vi.fn();
+      render(<FlagTable {...defaultProps} onToggle={onToggle} />);
+      const toggle = screen.getByRole('switch');
+      fireEvent.click(toggle);
+      expect(screen.queryByText(/Changes will take effect after a rebuild/)).toBeNull();
+    });
   });
 });

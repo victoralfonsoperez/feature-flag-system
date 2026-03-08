@@ -133,6 +133,17 @@ describe('EditFlagModal', () => {
     expect(dialog.getAttribute('aria-label')).toBe('Edit flag dark-mode');
   });
 
+  it('shows build-time warning for build-time flag', () => {
+    const buildTimeFlag: Flag = { ...mockFlag, type: 'build-time' };
+    render(<EditFlagModal flag={buildTimeFlag} onSave={noop} onClose={noop} />);
+    expect(screen.getByText(/This is a build-time flag/)).toBeDefined();
+  });
+
+  it('does not show build-time warning for runtime flag', () => {
+    render(<EditFlagModal flag={mockFlag} onSave={noop} onClose={noop} />);
+    expect(screen.queryByText(/This is a build-time flag/)).toBeNull();
+  });
+
   it('omits description when cleared', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<EditFlagModal flag={mockFlag} onSave={onSave} onClose={noop} />);
