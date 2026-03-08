@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getFlags, getAuthStatus } from './api';
+import { getFlags, getAuthStatus, updateFlag } from './api';
 import type { Flag, Environment } from './types';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import Header from './components/Header';
@@ -13,6 +13,7 @@ function Dashboard() {
   const [flags, setFlags] = useState<Flag[]>([]);
   const [environment, setEnvironment] = useState<Environment>('production');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [setupRequired, setSetupRequired] = useState<boolean | null>(null);
   const [view, setView] = useState<'flags' | 'tokens'>('flags');
 
@@ -25,11 +26,27 @@ function Dashboard() {
   useEffect(() => {
     if (!isAuthenticated) return;
     setLoading(true);
+    setError(null);
     getFlags(environment)
       .then((data) => setFlags(data))
-      .catch(() => {})
+      .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [environment, isAuthenticated]);
+
+  function handleRetry() {
+    setLoading(true);
+    setError(null);
+    getFlags(environment)
+      .then((data) => setFlags(data))
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }
+
+  function handleToggle(key: string, newValue: string) {
+    updateFlag(key, { value: newValue }).then((updated) => {
+      setFlags((prev) => prev.map((f) => (f.key === key ? updated : f)));
+    });
+  }
 
   if (isLoading || setupRequired === null) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50"><p className="text-gray-500">Loading...</p></div>;
@@ -48,7 +65,7 @@ function Dashboard() {
       />
       <main className="max-w-6xl mx-auto p-6">
         {view === 'flags' ? (
-          <FlagTable flags={flags} loading={loading} />
+          <FlagTable flags={flags} loading={loading} error={error} onRetry={handleRetry} onToggle={handleToggle} />
         ) : (
           <TokenManager />
         )}
