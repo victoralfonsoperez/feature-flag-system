@@ -1,3 +1,4 @@
+import rateLimit from '@fastify/rate-limit';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { hashPassword, verifyPassword } from '../auth/password.js';
 import {
@@ -52,6 +53,7 @@ const loginRateLimit = {
 };
 
 export async function authRoutes(app: FastifyInstance) {
+  await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
 
   // GET /api/auth/status — check if setup is needed
   app.get('/status', async (_request: FastifyRequest, reply: FastifyReply) => {
