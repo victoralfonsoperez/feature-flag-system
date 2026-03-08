@@ -1,10 +1,13 @@
 import { randomBytes, createHash } from 'node:crypto';
+import rateLimit from '@fastify/rate-limit';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { requireAuth } from '../middleware/auth.js';
 import type { ApiTokenRow } from '../db.js';
 import '../types.js';
 
 export async function tokenRoutes(app: FastifyInstance) {
+  await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
+
   // All token routes require auth
   app.addHook('preHandler', requireAuth);
 

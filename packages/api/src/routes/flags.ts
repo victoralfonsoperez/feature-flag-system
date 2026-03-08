@@ -1,3 +1,4 @@
+import rateLimit from '@fastify/rate-limit';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { triggerGitHubRebuild } from '../webhook.js';
 import type { FlagRow } from '../db.js';
@@ -5,6 +6,7 @@ import { requireAuth } from '../middleware/auth.js';
 import '../types.js';
 
 export async function flagRoutes(app: FastifyInstance) {
+  await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
   // GET /api/flags — list all flags, filterable by type and env
   app.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
     const { type, env } = request.query as { type?: string; env?: string };
