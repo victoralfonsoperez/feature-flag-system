@@ -38,6 +38,7 @@ const defaultProps = {
   error: null as string | null,
   onRetry: noop,
   onToggle: noop,
+  onEdit: noop as (flag: Flag) => void,
 };
 
 describe('FlagTable', () => {
@@ -125,5 +126,19 @@ describe('FlagTable', () => {
     render(<FlagTable {...defaultProps} flags={[]} error="Network error" onRetry={onRetry} />);
     fireEvent.click(screen.getByText('Retry'));
     expect(onRetry).toHaveBeenCalledOnce();
+  });
+
+  it('renders Edit button for each flag row', () => {
+    render(<FlagTable {...defaultProps} />);
+    const editButtons = screen.getAllByText('Edit');
+    expect(editButtons.length).toBe(2);
+  });
+
+  it('Edit button calls onEdit with the flag', () => {
+    const onEdit = vi.fn();
+    render(<FlagTable {...defaultProps} onEdit={onEdit} />);
+    const editButtons = screen.getAllByText('Edit');
+    fireEvent.click(editButtons[0]);
+    expect(onEdit).toHaveBeenCalledWith(mockFlags[0]);
   });
 });
