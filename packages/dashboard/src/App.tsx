@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { getFlags, getAuthStatus, updateFlag } from './api';
-import type { Flag, Environment } from './types';
+import { getFlags, getAuthStatus, updateFlag, createFlag } from './api';
+import type { Flag, Environment, CreateFlagInput } from './types';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import Header from './components/Header';
 import FlagTable from './components/FlagTable';
+import CreateFlagForm from './components/CreateFlagForm';
 import LoginForm from './components/LoginForm';
 import SetupForm from './components/SetupForm';
 import TokenManager from './components/TokenManager';
@@ -49,6 +50,12 @@ function Dashboard() {
     });
   }
 
+  async function handleCreateFlag(input: CreateFlagInput) {
+    await createFlag(input);
+    const data = await getFlags(environment);
+    setFlags(data);
+  }
+
   if (isLoading || setupRequired === null) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50"><p className="text-gray-500">Loading...</p></div>;
   }
@@ -66,7 +73,10 @@ function Dashboard() {
       />
       <main className="max-w-6xl mx-auto p-6">
         {view === 'flags' ? (
-          <FlagTable flags={flags} loading={loading} error={error} onRetry={handleRetry} onToggle={handleToggle} />
+          <>
+            <CreateFlagForm onSubmit={handleCreateFlag} />
+            <FlagTable flags={flags} loading={loading} error={error} onRetry={handleRetry} onToggle={handleToggle} />
+          </>
         ) : view === 'tokens' ? (
           <TokenManager />
         ) : (
