@@ -5,9 +5,12 @@ import {
   createFlag,
   updateFlag,
   deleteFlag,
+  getUsers,
+  createUser,
+  deleteUser,
   ApiError,
 } from './api';
-import type { Flag, CreateFlagInput, UpdateFlagInput } from './api';
+import type { Flag, CreateFlagInput, UpdateFlagInput, User } from './api';
 
 const mockFlag: Flag = {
   key: 'test-flag',
@@ -190,6 +193,69 @@ describe('deleteFlag', () => {
 
     const result = await deleteFlag('test-flag');
 
+    expect(result).toBeUndefined();
+  });
+});
+
+describe('getUsers', () => {
+  const mockUser: User = {
+    id: 1,
+    email: 'admin@test.com',
+    role: 'admin',
+    created_at: '2026-01-01T00:00:00Z',
+  };
+
+  it('fetches users list', async () => {
+    mockFetch.mockResolvedValue(jsonResponse([mockUser]));
+
+    const result = await getUsers();
+
+    expect(mockFetch).toHaveBeenCalledWith('/api/users', { credentials: 'include' });
+    expect(result).toEqual([mockUser]);
+  });
+});
+
+describe('createUser', () => {
+  it('sends POST with email, password, and role', async () => {
+    const created: User = { id: 2, email: 'new@test.com', role: 'viewer', created_at: '2026-01-02T00:00:00Z' };
+    mockFetch.mockResolvedValue(jsonResponse(created, 201));
+
+    const result = await createUser('new@test.com', 'Pass123!', 'viewer');
+
+    expect(mockFetch).toHaveBeenCalledWith('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email: 'new@test.com', password: 'Pass123!', role: 'viewer' }),
+    });
+    expect(result.email).toBe('new@test.com');
+  });
+
+  it('throws ApiError on 409 conflict', async () => {
+    mockFetch.mockResolvedValue(errorResponse(409, 'A user with this email already exists'));
+
+    await expect(createUser('dup@test.com', 'Pass123!', 'viewer')).rejects.toMatchObject({
+      status: 409,
+    });
+  });
+});
+
+describe('deleteUser', () => {
+  it('sends DELETE request', async () => {
+    mockFetch.mockResolvedValue(new Response(null, { status: 204 }));
+
+    await deleteUser(5);
+
+    expect(mockFetch).toHaveBeenCalledWith('/api/users/5', {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+  });
+
+  it('returns undefined on 204', async () => {
+    mockFetch.mockResolvedValue(new Response(null, { status: 204 }));
+
+    const result = await deleteUser(5);
     expect(result).toBeUndefined();
   });
 });

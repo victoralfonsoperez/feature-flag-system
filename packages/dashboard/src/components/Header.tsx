@@ -4,8 +4,8 @@ import { useAuth } from '../auth/AuthContext';
 type HeaderProps = {
   environment: Environment;
   onEnvironmentChange: (env: Environment) => void;
-  view: 'flags' | 'tokens';
-  onViewChange: (view: 'flags' | 'tokens') => void;
+  view: 'flags' | 'tokens' | 'users';
+  onViewChange: (view: 'flags' | 'tokens' | 'users') => void;
 };
 
 export default function Header({ environment, onEnvironmentChange, view, onViewChange }: HeaderProps) {
@@ -37,6 +37,18 @@ export default function Header({ environment, onEnvironmentChange, view, onViewC
             >
               API Tokens
             </button>
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => onViewChange('users')}
+                className={`text-sm px-3 py-1 rounded-md ${
+                  view === 'users'
+                    ? 'bg-gray-100 text-gray-900 font-medium'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Users
+              </button>
+            )}
           </nav>
         </div>
         <div className="flex items-center gap-4">

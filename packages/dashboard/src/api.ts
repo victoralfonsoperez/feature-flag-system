@@ -103,6 +103,26 @@ export function deleteToken(id: number): Promise<void> {
   return authedRequest(`/tokens/${id}`, { method: 'DELETE' });
 }
 
+// Users
+
+export type User = { id: number; email: string; role: 'admin' | 'viewer'; created_at: string };
+
+export function getUsers(): Promise<User[]> {
+  return authedRequest('/users');
+}
+
+export function createUser(email: string, password: string, role: 'admin' | 'viewer'): Promise<User> {
+  return authedRequest('/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, role }),
+  });
+}
+
+export function deleteUser(id: number): Promise<void> {
+  return authedRequest(`/users/${id}`, { method: 'DELETE' });
+}
+
 // Flags
 
 export function getFlags(env?: Environment): Promise<Flag[]> {
