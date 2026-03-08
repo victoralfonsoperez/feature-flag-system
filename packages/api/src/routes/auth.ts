@@ -157,12 +157,7 @@ export async function authRoutes(app: FastifyInstance) {
   app.post(
     '/logout',
     {
-      config: {
-        rateLimit: {
-          max: 50,
-          timeWindow: '1 minute',
-        },
-      },
+      ...loginRateLimit,
       preHandler: [requireAuth],
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
