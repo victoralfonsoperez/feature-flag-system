@@ -52,9 +52,10 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
   // Strategy 3: Bearer API token
   const authHeader = request.headers.authorization;
   if (authHeader) {
-    const match = authHeader.match(/^Bearer\s+(.+)$/i);
-    if (match) {
-      const tokenHash = createHash('sha256').update(match[1]).digest('hex');
+    const prefix = authHeader.substring(0, 7);
+    if (prefix.toLowerCase() === 'bearer ') {
+      const token = authHeader.substring(7).trim();
+      const tokenHash = createHash('sha256').update(token).digest('hex');
       const row = db
         .prepare(
           `SELECT t.id as token_id, t.created_by, u.id, u.email, u.role

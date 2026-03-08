@@ -1,9 +1,10 @@
+import rateLimit from '@fastify/rate-limit';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { hashPassword, verifyPassword } from '../auth/password.js';
 import {
   createTokenPair,
   revokeRefreshToken,
-  revokeAllUserSessions,
+
   cleanExpiredSessions,
   ACCESS_TOKEN_TTL,
   REFRESH_TOKEN_TTL,
@@ -42,7 +43,22 @@ function clearAuthCookies(reply: FastifyReply): FastifyReply {
     .clearCookie('refresh_token', { path: '/' });
 }
 
+const loginRateLimit = {
+  config: {
+    rateLimit: {
+      max: 10,
+      timeWindow: '1 minute',
+    },
+  },
+};
+
 export async function authRoutes(app: FastifyInstance) {
+  await app.register(rateLimit, {
+    max: 1000,
+    timeWindow: '1 minute',
+    global: false,
+  });
+
   // GET /api/auth/status — check if setup is needed
   app.get('/status', async (_request: FastifyRequest, reply: FastifyReply) => {
     const count = app.db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
@@ -50,7 +66,7 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   // POST /api/auth/setup — create first admin user
-  app.post('/setup', async (request: FastifyRequest, reply: FastifyReply) => {
+  app.post('/setup', loginRateLimit, async (request: FastifyRequest, reply: FastifyReply) => {
     const { email, password } = request.body as { email?: string; password?: string };
 
     if (!email || !password) {
@@ -77,7 +93,7 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   // POST /api/auth/login — authenticate and issue tokens
-  app.post('/login', async (request: FastifyRequest, reply: FastifyReply) => {
+  app.post('/login', loginRateLimit, async (request: FastifyRequest, reply: FastifyReply) => {
     const { email, password } = request.body as { email?: string; password?: string };
 
     if (!email || !password) {
