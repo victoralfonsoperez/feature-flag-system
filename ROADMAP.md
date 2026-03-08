@@ -116,14 +116,14 @@ Build the web dashboard for managing flags.
 - [x] Show transient warning after toggling a build-time flag (auto-dismisses after 5s)
 
 ##### Activity log view
-- [ ] Add `GET /api/audit-log` endpoint to the API (paginated, filterable by `flag_key`)
-- [ ] Create `AuditLog` component that displays a timeline/table of changes
-- [ ] Show columns: flag key, action (created/updated/deleted), old value, new value, changed by, timestamp
-- [ ] Add a "View history" action on each flag row that filters the log to that flag
-- [ ] Add pagination or "load more" for the activity log
+- [x] Add `GET /api/audit-log` endpoint to the API (paginated, filterable by `flag_key`)
+- [x] Create `AuditLog` component that displays a timeline/table of changes
+- [x] Show columns: flag key, action (created/updated/deleted), old value, new value, changed by, timestamp
+- [x] Add a "View history" action on each flag row that filters the log to that flag
+- [x] Add pagination or "load more" for the activity log
 
 ##### Layout & polish
-- [ ] Add a top navigation bar with app title and links (Flags, Activity Log)
+- [x] Add a top navigation bar with app title and links (Flags, Activity Log)
 - [ ] Add toast/notification system for success and error feedback
 - [ ] Add responsive layout that works on mobile viewports
 - [ ] Add keyboard shortcut: Escape to close modals

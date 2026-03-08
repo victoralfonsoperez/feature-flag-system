@@ -9,6 +9,7 @@ type FlagTableProps = {
   onToggle: (key: string, newValue: string) => void;
   onEdit: (flag: Flag) => void;
   onDelete: (flag: Flag) => void;
+  onViewHistory: (flagKey: string) => void;
 };
 
 function SkeletonRow() {
@@ -43,7 +44,7 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: () =>
   );
 }
 
-export default function FlagTable({ flags, loading, error, onRetry, onToggle, onEdit, onDelete }: FlagTableProps) {
+export default function FlagTable({ flags, loading, error, onRetry, onToggle, onEdit, onDelete, onViewHistory }: FlagTableProps) {
   const [buildTimeWarning, setBuildTimeWarning] = useState<string | null>(null);
 
   const handleToggle = useCallback((flag: Flag, newValue: string) => {
@@ -148,8 +149,14 @@ export default function FlagTable({ flags, loading, error, onRetry, onToggle, on
               <td className="px-4 py-3 text-sm text-gray-500">{flag.updated_at}</td>
               <td className="px-4 py-3 text-right">
                 <button
+                  onClick={() => onViewHistory(flag.key)}
+                  className="text-sm text-gray-600 hover:underline"
+                >
+                  History
+                </button>
+                <button
                   onClick={() => onEdit(flag)}
-                  className="text-sm text-blue-600 hover:underline"
+                  className="text-sm text-blue-600 hover:underline ml-3"
                 >
                   Edit
                 </button>

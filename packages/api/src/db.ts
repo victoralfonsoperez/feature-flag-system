@@ -86,6 +86,16 @@ export type SessionRow = {
   created_at: string;
 };
 
+export type AuditLogRow = {
+  id: number;
+  flag_key: string;
+  action: string;
+  old_value: string | null;
+  new_value: string | null;
+  changed_by: string;
+  changed_at: string;
+};
+
 export type ApiTokenRow = {
   id: number;
   name: string;

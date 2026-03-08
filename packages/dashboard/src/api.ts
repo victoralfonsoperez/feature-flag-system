@@ -1,6 +1,6 @@
-import type { Flag, Environment, CreateFlagInput, UpdateFlagInput } from './types';
+import type { Flag, Environment, CreateFlagInput, UpdateFlagInput, AuditLogEntry } from './types';
 
-export type { Flag, Environment, CreateFlagInput, UpdateFlagInput };
+export type { Flag, Environment, CreateFlagInput, UpdateFlagInput, AuditLogEntry };
 
 const BASE_URL = '/api';
 
@@ -154,4 +154,11 @@ export function deleteFlag(key: string): Promise<void> {
   return authedRequest<void>(`/flags/${encodeURIComponent(key)}`, {
     method: 'DELETE',
   });
+}
+
+// Audit Log
+
+export function getAuditLog(flagKey?: string): Promise<AuditLogEntry[]> {
+  const query = flagKey ? `?flag_key=${encodeURIComponent(flagKey)}` : '';
+  return authedRequest<AuditLogEntry[]>(`/audit-log${query}`);
 }
