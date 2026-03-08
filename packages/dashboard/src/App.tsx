@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { getFlags, getAuthStatus, updateFlag, createFlag } from './api';
+import { getFlags, getAuthStatus, updateFlag, createFlag, deleteFlag } from './api';
 import type { Flag, Environment, CreateFlagInput, UpdateFlagInput } from './types';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import Header from './components/Header';
 import FlagTable from './components/FlagTable';
 import CreateFlagForm from './components/CreateFlagForm';
 import EditFlagModal from './components/EditFlagModal';
+import DeleteFlagModal from './components/DeleteFlagModal';
 import LoginForm from './components/LoginForm';
 import SetupForm from './components/SetupForm';
 import TokenManager from './components/TokenManager';
@@ -20,6 +21,7 @@ function Dashboard() {
   const [setupRequired, setSetupRequired] = useState<boolean | null>(null);
   const [view, setView] = useState<'flags' | 'tokens' | 'users'>('flags');
   const [editingFlag, setEditingFlag] = useState<Flag | null>(null);
+  const [deletingFlag, setDeletingFlag] = useState<Flag | null>(null);
 
   useEffect(() => {
     getAuthStatus()
@@ -63,6 +65,11 @@ function Dashboard() {
     setFlags((prev) => prev.map((f) => (f.key === key ? updated : f)));
   }
 
+  async function handleDeleteFlag(key: string) {
+    await deleteFlag(key);
+    setFlags((prev) => prev.filter((f) => f.key !== key));
+  }
+
   if (isLoading || setupRequired === null) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50"><p className="text-gray-500">Loading...</p></div>;
   }
@@ -82,12 +89,19 @@ function Dashboard() {
         {view === 'flags' ? (
           <>
             <CreateFlagForm onSubmit={handleCreateFlag} />
-            <FlagTable flags={flags} loading={loading} error={error} onRetry={handleRetry} onToggle={handleToggle} onEdit={setEditingFlag} />
+            <FlagTable flags={flags} loading={loading} error={error} onRetry={handleRetry} onToggle={handleToggle} onEdit={setEditingFlag} onDelete={setDeletingFlag} />
             {editingFlag && (
               <EditFlagModal
                 flag={editingFlag}
                 onSave={handleEditFlag}
                 onClose={() => setEditingFlag(null)}
+              />
+            )}
+            {deletingFlag && (
+              <DeleteFlagModal
+                flag={deletingFlag}
+                onConfirm={handleDeleteFlag}
+                onClose={() => setDeletingFlag(null)}
               />
             )}
           </>
