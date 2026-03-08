@@ -59,6 +59,15 @@ export async function authRoutes(app: FastifyInstance) {
     global: false,
   });
 
+  const loginRateLimit = {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '1 minute',
+      },
+    },
+  };
+
   // GET /api/auth/status — check if setup is needed
   app.get('/status', async (_request: FastifyRequest, reply: FastifyReply) => {
     const count = app.db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
