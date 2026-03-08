@@ -5,14 +5,21 @@ import { hashPassword } from '../auth/password.js';
 import type { UserRow } from '../db.js';
 import '../types.js';
 
+const adminRouteConfig = {
+  config: {
+    rateLimit: {
+      max: 100,
+      timeWindow: '1 minute',
+    },
+  },
+  preHandler: [requireAuth, requireAdmin],
+};
+
 export async function userRoutes(app: FastifyInstance) {
   await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
 
-  app.addHook('preHandler', requireAuth);
-  app.addHook('preHandler', requireAdmin);
-
   // GET /api/users — list all users
-  app.get('/', async (_request: FastifyRequest, reply: FastifyReply) => {
+  app.get('/', adminRouteConfig, async (_request: FastifyRequest, reply: FastifyReply) => {
     const users = app.db
       .prepare('SELECT id, email, role, created_at FROM users ORDER BY created_at DESC')
       .all() as Pick<UserRow, 'id' | 'email' | 'role' | 'created_at'>[];
@@ -21,7 +28,7 @@ export async function userRoutes(app: FastifyInstance) {
   });
 
   // POST /api/users — create a new user
-  app.post('/', async (request: FastifyRequest, reply: FastifyReply) => {
+  app.post('/', adminRouteConfig, async (request: FastifyRequest, reply: FastifyReply) => {
     const { email, password, role } = request.body as {
       email?: string;
       password?: string;
@@ -61,7 +68,7 @@ export async function userRoutes(app: FastifyInstance) {
   });
 
   // DELETE /api/users/:id — delete a user
-  app.delete('/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+  app.delete('/:id', adminRouteConfig, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const userId = Number(id);
 
