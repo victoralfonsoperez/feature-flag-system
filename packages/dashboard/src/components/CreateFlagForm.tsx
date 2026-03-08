@@ -127,6 +127,12 @@ export default function CreateFlagForm({ onSubmit }: CreateFlagFormProps) {
         </div>
       </div>
 
+      {type === 'build-time' && (
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-md px-3 py-2 mb-3">
+          ⚠ Build-time flags require a rebuild to take effect. If GitHub integration is configured, a rebuild is triggered automatically.
+        </div>
+      )}
+
       <div className="mb-3">
         <label htmlFor="flag-description" className="block text-sm font-medium text-gray-700 mb-1">
           Description

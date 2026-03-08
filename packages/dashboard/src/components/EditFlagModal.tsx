@@ -69,6 +69,12 @@ export default function EditFlagModal({ flag, onSave, onClose }: EditFlagModalPr
           </button>
         </div>
 
+        {flag.type === 'build-time' && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-md px-3 py-2 mb-4">
+            ⚠ This is a build-time flag. Changes will not take effect until the app is rebuilt.
+          </div>
+        )}
+
         <p className="text-sm text-gray-500 mb-1">Key</p>
         <p className="font-mono text-sm mb-4">{flag.key}</p>
 

@@ -132,6 +132,17 @@ describe('CreateFlagForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('shows build-time warning when type is build-time', () => {
+    render(<CreateFlagForm onSubmit={noop} />);
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'build-time' } });
+    expect(screen.getByText(/Build-time flags require a rebuild/)).toBeDefined();
+  });
+
+  it('does not show build-time warning when type is runtime', () => {
+    render(<CreateFlagForm onSubmit={noop} />);
+    expect(screen.queryByText(/Build-time flags require a rebuild/)).toBeNull();
+  });
+
   it('omits description when empty', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<CreateFlagForm onSubmit={onSubmit} />);
