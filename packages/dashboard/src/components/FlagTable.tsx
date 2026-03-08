@@ -3,15 +3,87 @@ import type { Flag } from '../types';
 type FlagTableProps = {
   flags: Flag[];
   loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+  onToggle: (key: string, newValue: string) => void;
 };
 
-export default function FlagTable({ flags, loading }: FlagTableProps) {
+function SkeletonRow() {
+  return (
+    <tr className="border-b border-gray-100">
+      {Array.from({ length: 5 }, (_, i) => (
+        <td key={i} className="px-4 py-3">
+          <div className="h-4 bg-gray-200 rounded animate-pulse" />
+        </td>
+      ))}
+    </tr>
+  );
+}
+
+function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={onChange}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+        checked ? 'bg-blue-600' : 'bg-gray-300'
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+          checked ? 'translate-x-6' : 'translate-x-1'
+        }`}
+      />
+    </button>
+  );
+}
+
+export default function FlagTable({ flags, loading, error, onRetry, onToggle }: FlagTableProps) {
   if (loading) {
-    return <p className="text-gray-500">Loading flags...</p>;
+    return (
+      <div className="w-full bg-white rounded-lg border border-gray-200" aria-busy="true">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-200 text-left text-sm text-gray-600">
+              <th className="px-4 py-3">Key</th>
+              <th className="px-4 py-3">Value</th>
+              <th className="px-4 py-3">Type</th>
+              <th className="px-4 py-3">Environment</th>
+              <th className="px-4 py-3">Updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            <SkeletonRow />
+            <SkeletonRow />
+            <SkeletonRow />
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full bg-white rounded-lg border border-red-200 p-8 text-center">
+        <p className="text-red-600 mb-4">{error}</p>
+        <button
+          onClick={onRetry}
+          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   if (flags.length === 0) {
-    return <p className="text-gray-500">No flags found for this environment.</p>;
+    return (
+      <div className="w-full bg-white rounded-lg border border-gray-200 p-12 text-center">
+        <p className="text-gray-500 text-lg">No flags found for this environment.</p>
+      </div>
+    );
   }
 
   return (
@@ -21,28 +93,42 @@ export default function FlagTable({ flags, loading }: FlagTableProps) {
           <th className="px-4 py-3">Key</th>
           <th className="px-4 py-3">Value</th>
           <th className="px-4 py-3">Type</th>
+          <th className="px-4 py-3">Environment</th>
           <th className="px-4 py-3">Updated</th>
         </tr>
       </thead>
       <tbody>
-        {flags.map((flag) => (
-          <tr key={flag.key} className="border-b border-gray-100">
-            <td className="px-4 py-3 font-mono text-sm">{flag.key}</td>
-            <td className="px-4 py-3 text-sm">{flag.value}</td>
-            <td className="px-4 py-3">
-              <span
-                className={`text-xs px-2 py-0.5 rounded-full ${
-                  flag.type === 'build-time'
-                    ? 'bg-amber-100 text-amber-800'
-                    : 'bg-blue-100 text-blue-800'
-                }`}
-              >
-                {flag.type}
-              </span>
-            </td>
-            <td className="px-4 py-3 text-sm text-gray-500">{flag.updated_at}</td>
-          </tr>
-        ))}
+        {flags.map((flag) => {
+          const isBool = flag.value === 'true' || flag.value === 'false';
+          return (
+            <tr key={flag.key} className="border-b border-gray-100">
+              <td className="px-4 py-3 font-mono text-sm">{flag.key}</td>
+              <td className="px-4 py-3 text-sm">
+                {isBool ? (
+                  <ToggleSwitch
+                    checked={flag.value === 'true'}
+                    onChange={() => onToggle(flag.key, flag.value === 'true' ? 'false' : 'true')}
+                  />
+                ) : (
+                  flag.value
+                )}
+              </td>
+              <td className="px-4 py-3">
+                <span
+                  className={`text-xs px-2 py-0.5 rounded-full ${
+                    flag.type === 'build-time'
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-blue-100 text-blue-800'
+                  }`}
+                >
+                  {flag.type}
+                </span>
+              </td>
+              <td className="px-4 py-3 text-sm">{flag.environment}</td>
+              <td className="px-4 py-3 text-sm text-gray-500">{flag.updated_at}</td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );
