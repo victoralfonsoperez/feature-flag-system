@@ -7,6 +7,7 @@ import FlagTable from './components/FlagTable';
 import LoginForm from './components/LoginForm';
 import SetupForm from './components/SetupForm';
 import TokenManager from './components/TokenManager';
+import UserManager from './components/UserManager';
 
 function Dashboard() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -15,7 +16,7 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [setupRequired, setSetupRequired] = useState<boolean | null>(null);
-  const [view, setView] = useState<'flags' | 'tokens'>('flags');
+  const [view, setView] = useState<'flags' | 'tokens' | 'users'>('flags');
 
   useEffect(() => {
     getAuthStatus()
@@ -66,8 +67,10 @@ function Dashboard() {
       <main className="max-w-6xl mx-auto p-6">
         {view === 'flags' ? (
           <FlagTable flags={flags} loading={loading} error={error} onRetry={handleRetry} onToggle={handleToggle} />
-        ) : (
+        ) : view === 'tokens' ? (
           <TokenManager />
+        ) : (
+          <UserManager />
         )}
       </main>
     </div>

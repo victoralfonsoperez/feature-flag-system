@@ -6,6 +6,7 @@ import { initDatabase } from './db.js';
 import { flagRoutes } from './routes/flags.js';
 import { authRoutes } from './routes/auth.js';
 import { tokenRoutes } from './routes/tokens.js';
+import { userRoutes } from './routes/users.js';
 import './types.js';
 
 const port = Number(process.env.PORT) || 3100;
@@ -34,6 +35,7 @@ async function start() {
 
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(tokenRoutes, { prefix: '/api/tokens' });
+  await app.register(userRoutes, { prefix: '/api/users' });
   await app.register(flagRoutes, { prefix: '/api/flags' });
 
   await app.listen({ port, host: '0.0.0.0' });

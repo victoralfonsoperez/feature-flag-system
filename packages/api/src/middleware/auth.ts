@@ -78,3 +78,9 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
 
   return reply.status(401).send({ error: 'Authentication required', statusCode: 401 });
 }
+
+export async function requireAdmin(request: FastifyRequest, reply: FastifyReply) {
+  if (request.user?.role !== 'admin') {
+    return reply.status(403).send({ error: 'Admin access required', statusCode: 403 });
+  }
+}
