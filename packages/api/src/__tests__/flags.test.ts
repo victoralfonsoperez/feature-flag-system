@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
 import cookie from '@fastify/cookie';
+import rateLimit from '@fastify/rate-limit';
 import { initDatabase } from '../db.js';
 import { flagRoutes } from '../routes/flags.js';
 import { authRoutes } from '../routes/auth.js';
@@ -64,6 +65,7 @@ beforeAll(async () => {
   const db = initDatabase(':memory:');
   app.decorate('db', db);
   await app.register(cookie);
+  await app.register(rateLimit, { max: 1000, timeWindow: '1 minute' });
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(flagRoutes, { prefix: '/api/flags' });
   await app.ready();

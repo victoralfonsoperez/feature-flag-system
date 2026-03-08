@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
+import rateLimit from '@fastify/rate-limit';
 import { initDatabase } from './db.js';
 import { flagRoutes } from './routes/flags.js';
 import { authRoutes } from './routes/auth.js';
@@ -14,6 +15,7 @@ async function start() {
 
   await app.register(cors, { origin: true, credentials: true });
   await app.register(cookie);
+  await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
 
   const db = initDatabase();
   app.decorate('db', db);
