@@ -125,7 +125,7 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   // POST /api/auth/refresh — exchange refresh token for new access token
-  app.post('/refresh', async (request: FastifyRequest, reply: FastifyReply) => {
+  app.post('/refresh', loginRateLimit, async (request: FastifyRequest, reply: FastifyReply) => {
     const refreshToken = request.cookies?.refresh_token;
     if (!refreshToken) {
       return reply.status(401).send({ error: 'No refresh token', statusCode: 401 });
