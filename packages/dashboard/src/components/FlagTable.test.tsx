@@ -39,6 +39,7 @@ const defaultProps = {
   onRetry: noop,
   onToggle: noop,
   onEdit: noop as (flag: Flag) => void,
+  onDelete: noop as (flag: Flag) => void,
 };
 
 describe('FlagTable', () => {
@@ -140,5 +141,19 @@ describe('FlagTable', () => {
     const editButtons = screen.getAllByText('Edit');
     fireEvent.click(editButtons[0]);
     expect(onEdit).toHaveBeenCalledWith(mockFlags[0]);
+  });
+
+  it('renders Delete button for each flag row', () => {
+    render(<FlagTable {...defaultProps} />);
+    const deleteButtons = screen.getAllByText('Delete');
+    expect(deleteButtons.length).toBe(2);
+  });
+
+  it('Delete button calls onDelete with the flag', () => {
+    const onDelete = vi.fn();
+    render(<FlagTable {...defaultProps} onDelete={onDelete} />);
+    const deleteButtons = screen.getAllByText('Delete');
+    fireEvent.click(deleteButtons[0]);
+    expect(onDelete).toHaveBeenCalledWith(mockFlags[0]);
   });
 });

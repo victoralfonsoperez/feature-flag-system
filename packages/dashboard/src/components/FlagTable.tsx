@@ -7,6 +7,7 @@ type FlagTableProps = {
   onRetry: () => void;
   onToggle: (key: string, newValue: string) => void;
   onEdit: (flag: Flag) => void;
+  onDelete: (flag: Flag) => void;
 };
 
 function SkeletonRow() {
@@ -41,7 +42,7 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: () =>
   );
 }
 
-export default function FlagTable({ flags, loading, error, onRetry, onToggle, onEdit }: FlagTableProps) {
+export default function FlagTable({ flags, loading, error, onRetry, onToggle, onEdit, onDelete }: FlagTableProps) {
   if (loading) {
     return (
       <div className="w-full bg-white rounded-lg border border-gray-200" aria-busy="true">
@@ -134,6 +135,12 @@ export default function FlagTable({ flags, loading, error, onRetry, onToggle, on
                   className="text-sm text-blue-600 hover:underline"
                 >
                   Edit
+                </button>
+                <button
+                  onClick={() => onDelete(flag)}
+                  className="text-sm text-red-600 hover:underline ml-3"
+                >
+                  Delete
                 </button>
               </td>
             </tr>

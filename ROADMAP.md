@@ -103,10 +103,10 @@ Build the web dashboard for managing flags.
 - [x] Show success feedback and refresh flag list on save
 
 ##### Delete flag
-- [ ] Add delete action (icon/button) on each flag row
-- [ ] Show confirmation dialog before deleting ("Are you sure you want to delete {key}?")
-- [ ] Wire confirm to `DELETE /api/flags/:key` with auth header
-- [ ] Show success feedback and refresh flag list on delete
+- [x] Add delete action (icon/button) on each flag row
+- [x] Show confirmation dialog before deleting ("Are you sure you want to delete {key}?")
+- [x] Wire confirm to `DELETE /api/flags/:key` with auth header
+- [x] Show success feedback and refresh flag list on delete
 
 #### Week 5: Modals, Activity Log & Polish
 
