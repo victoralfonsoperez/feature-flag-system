@@ -153,6 +153,10 @@ The system uses **JWT-based auth** with two tokens for dashboard users, and per-
 | `packages/dashboard` | Flag Dashboard — React + Tailwind web UI |
 | `packages/sdk` | Client SDK — React provider & hooks for runtime flags |
 
+## Usage Guide
+
+See [docs/USAGE.md](./docs/USAGE.md) for a complete guide on integrating feature flags into your app, covering both runtime (React SDK) and build-time scenarios.
+
 ## Getting Started
 
 ```bash
