@@ -7,6 +7,7 @@ import { flagRoutes } from './routes/flags.js';
 import { authRoutes } from './routes/auth.js';
 import { tokenRoutes } from './routes/tokens.js';
 import { userRoutes } from './routes/users.js';
+import { auditLogRoutes } from './routes/audit-log.js';
 import './types.js';
 
 const port = Number(process.env.PORT) || 3100;
@@ -37,6 +38,7 @@ async function start() {
   await app.register(tokenRoutes, { prefix: '/api/tokens' });
   await app.register(userRoutes, { prefix: '/api/users' });
   await app.register(flagRoutes, { prefix: '/api/flags' });
+  await app.register(auditLogRoutes, { prefix: '/api/audit-log' });
 
   await app.listen({ port, host: '0.0.0.0' });
   console.log(`Flag Service running on http://localhost:${port}`);

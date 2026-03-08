@@ -40,6 +40,7 @@ const defaultProps = {
   onToggle: noop,
   onEdit: noop as (flag: Flag) => void,
   onDelete: noop as (flag: Flag) => void,
+  onViewHistory: noop as (flagKey: string) => void,
 };
 
 describe('FlagTable', () => {

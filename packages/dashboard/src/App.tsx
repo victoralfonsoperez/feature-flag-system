@@ -11,6 +11,7 @@ import LoginForm from './components/LoginForm';
 import SetupForm from './components/SetupForm';
 import TokenManager from './components/TokenManager';
 import UserManager from './components/UserManager';
+import AuditLog from './components/AuditLog';
 
 function Dashboard() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -19,9 +20,22 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [setupRequired, setSetupRequired] = useState<boolean | null>(null);
-  const [view, setView] = useState<'flags' | 'tokens' | 'users'>('flags');
+  const [view, setView] = useState<'flags' | 'tokens' | 'users' | 'activity'>('flags');
   const [editingFlag, setEditingFlag] = useState<Flag | null>(null);
   const [deletingFlag, setDeletingFlag] = useState<Flag | null>(null);
+  const [activityFlagKey, setActivityFlagKey] = useState<string | undefined>();
+
+  function handleViewHistory(flagKey: string) {
+    setActivityFlagKey(flagKey);
+    setView('activity');
+  }
+
+  function handleViewChange(newView: 'flags' | 'tokens' | 'users' | 'activity') {
+    if (newView !== 'activity') {
+      setActivityFlagKey(undefined);
+    }
+    setView(newView);
+  }
 
   useEffect(() => {
     getAuthStatus()
@@ -83,13 +97,13 @@ function Dashboard() {
         environment={environment}
         onEnvironmentChange={setEnvironment}
         view={view}
-        onViewChange={setView}
+        onViewChange={handleViewChange}
       />
       <main className="max-w-6xl mx-auto p-6">
         {view === 'flags' ? (
           <>
             <CreateFlagForm onSubmit={handleCreateFlag} />
-            <FlagTable flags={flags} loading={loading} error={error} onRetry={handleRetry} onToggle={handleToggle} onEdit={setEditingFlag} onDelete={setDeletingFlag} />
+            <FlagTable flags={flags} loading={loading} error={error} onRetry={handleRetry} onToggle={handleToggle} onEdit={setEditingFlag} onDelete={setDeletingFlag} onViewHistory={handleViewHistory} />
             {editingFlag && (
               <EditFlagModal
                 flag={editingFlag}
@@ -107,6 +121,8 @@ function Dashboard() {
           </>
         ) : view === 'tokens' ? (
           <TokenManager />
+        ) : view === 'activity' ? (
+          <AuditLog flagKey={activityFlagKey} />
         ) : (
           <UserManager />
         )}

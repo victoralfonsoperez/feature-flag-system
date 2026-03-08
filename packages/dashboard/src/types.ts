@@ -26,3 +26,13 @@ export type UpdateFlagInput = {
   description?: string;
   variants?: string;
 };
+
+export type AuditLogEntry = {
+  id: number;
+  flag_key: string;
+  action: string;
+  old_value: string | null;
+  new_value: string | null;
+  changed_by: string;
+  changed_at: string;
+};

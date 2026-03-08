@@ -4,8 +4,8 @@ import { useAuth } from '../auth/AuthContext';
 type HeaderProps = {
   environment: Environment;
   onEnvironmentChange: (env: Environment) => void;
-  view: 'flags' | 'tokens' | 'users';
-  onViewChange: (view: 'flags' | 'tokens' | 'users') => void;
+  view: 'flags' | 'tokens' | 'users' | 'activity';
+  onViewChange: (view: 'flags' | 'tokens' | 'users' | 'activity') => void;
 };
 
 export default function Header({ environment, onEnvironmentChange, view, onViewChange }: HeaderProps) {
@@ -36,6 +36,16 @@ export default function Header({ environment, onEnvironmentChange, view, onViewC
               }`}
             >
               API Tokens
+            </button>
+            <button
+              onClick={() => onViewChange('activity')}
+              className={`text-sm px-3 py-1 rounded-md ${
+                view === 'activity'
+                  ? 'bg-gray-100 text-gray-900 font-medium'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Activity
             </button>
             {user?.role === 'admin' && (
               <button
