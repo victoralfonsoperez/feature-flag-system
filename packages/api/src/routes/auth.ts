@@ -154,17 +154,29 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   // POST /api/auth/logout — revoke refresh token, clear cookies
-  app.post('/logout', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const refreshToken = request.cookies?.refresh_token;
-    if (refreshToken) {
-      const payload = decodeJwt(refreshToken);
-      if (payload?.jti) {
-        revokeRefreshToken(app.db, payload.jti);
+  app.post(
+    '/logout',
+    {
+      config: {
+        rateLimit: {
+          max: 50,
+          timeWindow: '1 minute',
+        },
+      },
+      preHandler: [requireAuth],
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const refreshToken = request.cookies?.refresh_token;
+      if (refreshToken) {
+        const payload = decodeJwt(refreshToken);
+        if (payload?.jti) {
+          revokeRefreshToken(app.db, payload.jti);
+        }
       }
-    }
 
-    return clearAuthCookies(reply).send({ success: true });
-  });
+      return clearAuthCookies(reply).send({ success: true });
+    },
+  );
 
   // GET /api/auth/me — get current user
   app.get('/me', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
