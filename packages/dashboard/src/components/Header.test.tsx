@@ -64,4 +64,24 @@ describe('Header', () => {
     expect(screen.getByText('Flags')).toBeDefined();
     expect(screen.getByText('API Tokens')).toBeDefined();
   });
+
+  it('shows Users nav button for admin users', () => {
+    render(<Header {...defaultProps} />);
+    expect(screen.getByText('Users')).toBeDefined();
+  });
+
+  it('calls onViewChange when Users button is clicked', () => {
+    const onViewChange = vi.fn();
+    render(<Header {...defaultProps} onViewChange={onViewChange} />);
+    fireEvent.click(screen.getByText('Users'));
+    expect(onViewChange).toHaveBeenCalledWith('users');
+  });
+});
+
+describe('Header - Users button highlights when active', () => {
+  it('applies active style to Users button when view is users', () => {
+    render(<Header {...defaultProps} view="users" />);
+    const usersButton = screen.getByText('Users');
+    expect(usersButton.className).toContain('bg-gray-100');
+  });
 });
