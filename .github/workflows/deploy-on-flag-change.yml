@@ -13,11 +13,12 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: .nvmrc
 
       - name: Fetch build-time flags
         run: |
-          curl -sf -H "Authorization: Bearer ${{ secrets.FLAG_SERVICE_TOKEN }}" \
+          # Token created via dashboard API Tokens page, stored as repo secret
+          curl -sf -H "Authorization: Bearer ${{ secrets.FLAG_SERVICE_API_TOKEN }}" \
             "${{ secrets.FLAG_SERVICE_URL }}/api/flags?type=build-time&env=prod" \
             | jq -r '.[] | "\(.key)=\(.value)"' > .env
 
