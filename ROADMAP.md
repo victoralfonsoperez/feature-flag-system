@@ -81,20 +81,20 @@ Build the web dashboard for managing flags.
 - [x] Break monolithic `App.tsx` into component files under `packages/dashboard/src/components/`
 
 ##### Flag list table
-- [ ] Create `FlagTable` component with columns: Key, Value, Type, Environment, Updated
-- [ ] Add type badges with color coding (amber for build-time, blue for runtime)
-- [ ] Add toggle switch for boolean flags (value is `"true"` / `"false"`) that calls PUT on toggle
-- [ ] Add environment selector dropdown that filters the flag list
-- [ ] Add loading skeleton/spinner state while fetching flags
-- [ ] Add empty state when no flags match the current filter
-- [ ] Add error state with retry button when API call fails
+- [x] Create `FlagTable` component with columns: Key, Value, Type, Environment, Updated
+- [x] Add type badges with color coding (amber for build-time, blue for runtime)
+- [x] Add toggle switch for boolean flags (value is `"true"` / `"false"`) that calls PUT on toggle
+- [x] Add environment selector dropdown that filters the flag list
+- [x] Add loading skeleton/spinner state while fetching flags
+- [x] Add empty state when no flags match the current filter
+- [x] Add error state with retry button when API call fails
 
 ##### Create flag form
-- [ ] Create `CreateFlagModal` component with form fields: key, value, type (dropdown), environment (dropdown), description
-- [ ] Add client-side validation matching API rules (key format, required fields, valid type/environment)
-- [ ] Wire form submission to `POST /api/flags` with auth header
-- [ ] Show success feedback and refresh flag list on create
-- [ ] Show error feedback on validation or API errors
+- [x] Create `CreateFlagForm` component with form fields: key, value, type (dropdown), environment (dropdown), description
+- [x] Add client-side validation matching API rules (key format, required fields, valid type/environment)
+- [x] Wire form submission to `POST /api/flags` with auth header
+- [x] Show success feedback and refresh flag list on create
+- [x] Show error feedback on validation or API errors
 
 ##### Inline editing
 - [ ] Add edit action (icon/button) on each flag row that opens an `EditFlagModal`

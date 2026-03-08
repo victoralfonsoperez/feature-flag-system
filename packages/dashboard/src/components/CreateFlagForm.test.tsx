@@ -1,0 +1,153 @@
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
+import CreateFlagForm from './CreateFlagForm';
+
+afterEach(cleanup);
+
+const noop = async () => {};
+
+describe('CreateFlagForm', () => {
+  it('renders all form fields', () => {
+    render(<CreateFlagForm onSubmit={noop} />);
+    expect(screen.getByLabelText('Key')).toBeDefined();
+    expect(screen.getByLabelText('Value')).toBeDefined();
+    expect(screen.getByLabelText('Type')).toBeDefined();
+    expect(screen.getByLabelText('Environment')).toBeDefined();
+    expect(screen.getByLabelText('Description')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Create Flag' })).toBeDefined();
+  });
+
+  it('shows validation error for empty key on submit', async () => {
+    render(<CreateFlagForm onSubmit={noop} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Create Flag' }));
+    await waitFor(() => {
+      expect(screen.getByText('Key is required')).toBeDefined();
+    });
+  });
+
+  it('shows validation error for key with spaces', async () => {
+    render(<CreateFlagForm onSubmit={noop} />);
+    const keyInput = screen.getByLabelText('Key');
+    fireEvent.change(keyInput, { target: { value: 'has space' } });
+    fireEvent.blur(keyInput);
+    expect(screen.getByText('Key cannot contain spaces')).toBeDefined();
+  });
+
+  it('shows validation error for invalid key characters', async () => {
+    render(<CreateFlagForm onSubmit={noop} />);
+    const keyInput = screen.getByLabelText('Key');
+    fireEvent.change(keyInput, { target: { value: 'inv@lid!' } });
+    fireEvent.blur(keyInput);
+    expect(screen.getByText('Key must be alphanumeric with dashes or underscores')).toBeDefined();
+  });
+
+  it('shows validation error for empty value on submit', async () => {
+    render(<CreateFlagForm onSubmit={noop} />);
+    const keyInput = screen.getByLabelText('Key');
+    fireEvent.change(keyInput, { target: { value: 'valid-key' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Flag' }));
+    await waitFor(() => {
+      expect(screen.getByText('Value is required')).toBeDefined();
+    });
+  });
+
+  it('calls onSubmit with correct data on valid submission', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<CreateFlagForm onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText('Key'), { target: { value: 'my-flag' } });
+    fireEvent.change(screen.getByLabelText('Value'), { target: { value: 'true' } });
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'build-time' } });
+    fireEvent.change(screen.getByLabelText('Environment'), { target: { value: 'staging' } });
+    fireEvent.change(screen.getByLabelText('Description'), { target: { value: 'A test flag' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create Flag' }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({
+        key: 'my-flag',
+        value: 'true',
+        type: 'build-time',
+        environment: 'staging',
+        description: 'A test flag',
+      });
+    });
+  });
+
+  it('resets form after successful submission', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<CreateFlagForm onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText('Key'), { target: { value: 'my-flag' } });
+    fireEvent.change(screen.getByLabelText('Value'), { target: { value: 'true' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Flag' }));
+
+    await waitFor(() => {
+      expect((screen.getByLabelText('Key') as HTMLInputElement).value).toBe('');
+      expect((screen.getByLabelText('Value') as HTMLInputElement).value).toBe('');
+    });
+  });
+
+  it('shows API error on submission failure', async () => {
+    const onSubmit = vi.fn().mockRejectedValue(new Error('Flag already exists'));
+    render(<CreateFlagForm onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText('Key'), { target: { value: 'my-flag' } });
+    fireEvent.change(screen.getByLabelText('Value'), { target: { value: 'true' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Flag' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Flag already exists')).toBeDefined();
+    });
+  });
+
+  it('shows Creating... while submitting', async () => {
+    let resolve: () => void;
+    const onSubmit = vi.fn().mockReturnValue(new Promise<void>((r) => { resolve = r; }));
+    render(<CreateFlagForm onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText('Key'), { target: { value: 'my-flag' } });
+    fireEvent.change(screen.getByLabelText('Value'), { target: { value: 'true' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Flag' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Creating...')).toBeDefined();
+    });
+
+    resolve!();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Create Flag' })).toBeDefined();
+    });
+  });
+
+  it('does not submit when key is invalid', async () => {
+    const onSubmit = vi.fn();
+    render(<CreateFlagForm onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText('Key'), { target: { value: 'inv@lid' } });
+    fireEvent.change(screen.getByLabelText('Value'), { target: { value: 'true' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Flag' }));
+
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('omits description when empty', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<CreateFlagForm onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText('Key'), { target: { value: 'my-flag' } });
+    fireEvent.change(screen.getByLabelText('Value'), { target: { value: 'true' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Flag' }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({
+        key: 'my-flag',
+        value: 'true',
+        type: 'runtime',
+        environment: 'production',
+        description: undefined,
+      });
+    });
+  });
+});
