@@ -61,10 +61,10 @@ export default function SetupForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-sm bg-white rounded-lg border border-gray-200 p-8">
-        <h1 className="text-xl font-semibold text-gray-900 mb-2">Create Admin Account</h1>
-        <p className="text-sm text-gray-500 mb-6">Set up the first admin user to get started.</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-950">
+      <div className="w-full max-w-sm bg-gray-900 rounded-lg border border-gray-700 p-8">
+        <h1 className="text-xl font-semibold text-gray-100 mb-2">Create Admin Account</h1>
+        <p className="text-sm text-gray-400 mb-6">Set up the first admin user to get started.</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <FormInput
             id="email"
@@ -94,12 +94,12 @@ export default function SetupForm() {
             {passwordTouched && (
               <>
                 {/* Strength bar */}
-                <div className="mt-2 h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+                <div className="mt-2 h-1.5 w-full bg-gray-700 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all ${strengthWidths[passwordResult.strength]} ${strengthColors[passwordResult.strength]}`}
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1 capitalize">
+                <p className="text-xs text-gray-400 mt-1 capitalize">
                   {passwordResult.strength}
                 </p>
 
@@ -108,7 +108,7 @@ export default function SetupForm() {
                   {passwordResult.messages.map((r) => (
                     <li
                       key={r.rule}
-                      className={`text-xs flex items-center gap-1 ${r.passed ? 'text-green-600' : 'text-gray-400'}`}
+                      className={`text-xs flex items-center gap-1 ${r.passed ? 'text-green-400' : 'text-gray-500'}`}
                     >
                       <span>{r.passed ? '\u2713' : '\u2022'}</span>
                       {r.rule}
@@ -119,7 +119,7 @@ export default function SetupForm() {
             )}
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-red-400">{error}</p>}
           <button
             type="submit"
             disabled={!formValid || loading}

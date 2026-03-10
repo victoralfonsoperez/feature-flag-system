@@ -23,7 +23,7 @@ describe('Toast', () => {
     );
     fireEvent.click(screen.getByText('Show Success'));
     expect(screen.getByText('Success!')).toBeDefined();
-    expect(screen.getByRole('alert').className).toContain('bg-green-50');
+    expect(screen.getByRole('alert').className).toContain('bg-green-900/30');
   });
 
   it('shows an error toast when triggered', () => {
@@ -34,7 +34,7 @@ describe('Toast', () => {
     );
     fireEvent.click(screen.getByText('Show Error'));
     expect(screen.getByText('Error!')).toBeDefined();
-    expect(screen.getByRole('alert').className).toContain('bg-red-50');
+    expect(screen.getByRole('alert').className).toContain('bg-red-900/30');
   });
 
   it('dismisses toast when close button is clicked', () => {

@@ -20,8 +20,8 @@ export default function Header({ environment, onEnvironmentChange, view, onViewC
         onClick={() => { onViewChange(target); setMenuOpen(false); }}
         className={`text-sm px-3 py-1 rounded-md ${
           view === target
-            ? 'bg-gray-100 text-gray-900 font-medium'
-            : 'text-gray-500 hover:text-gray-700'
+            ? 'bg-gray-800 text-gray-100 font-medium'
+            : 'text-gray-400 hover:text-gray-200'
         }`}
       >
         {label}
@@ -30,10 +30,10 @@ export default function Header({ environment, onEnvironmentChange, view, onViewC
   }
 
   return (
-    <header className="bg-white border-b border-gray-200 px-4 md:px-6 py-4">
+    <header className="bg-gray-900 border-b border-gray-700 px-4 md:px-6 py-4">
       <div className="flex items-center justify-between max-w-6xl mx-auto">
         <div className="flex items-center gap-4 md:gap-6">
-          <h1 className="text-xl font-semibold text-gray-900">Feature Flags</h1>
+          <h1 className="text-xl font-semibold text-gray-100">Feature Flags</h1>
           {/* Desktop nav */}
           <nav className="hidden md:flex gap-2">
             {navButton('Flags', 'flags')}
@@ -47,7 +47,7 @@ export default function Header({ environment, onEnvironmentChange, view, onViewC
             <select
               value={environment}
               onChange={(e) => onEnvironmentChange(e.target.value as Environment)}
-              className="border border-gray-300 rounded-md px-3 py-1.5 text-sm"
+              className="border border-gray-600 rounded-md px-3 py-1.5 text-sm bg-gray-800 text-gray-200"
             >
               <option value="production">Production</option>
               <option value="staging">Staging</option>
@@ -57,7 +57,7 @@ export default function Header({ environment, onEnvironmentChange, view, onViewC
           {onOpenSettings && (
             <button
               onClick={onOpenSettings}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-400 hover:text-gray-200"
               aria-label="Settings"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,11 +67,11 @@ export default function Header({ environment, onEnvironmentChange, view, onViewC
             </button>
           )}
           {user && (
-            <span className="text-sm text-gray-500">{user.email}</span>
+            <span className="text-sm text-gray-400">{user.email}</span>
           )}
           <button
             onClick={logout}
-            className="text-sm text-gray-500 hover:text-gray-700"
+            className="text-sm text-gray-400 hover:text-gray-200"
           >
             Logout
           </button>
@@ -93,7 +93,7 @@ export default function Header({ environment, onEnvironmentChange, view, onViewC
       </div>
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden mt-3 pt-3 border-t border-gray-200 space-y-2">
+        <div className="md:hidden mt-3 pt-3 border-t border-gray-700 space-y-2">
           <nav className="flex flex-col gap-1">
             {navButton('Flags', 'flags')}
             {navButton('API Tokens', 'tokens')}
@@ -104,7 +104,7 @@ export default function Header({ environment, onEnvironmentChange, view, onViewC
             <select
               value={environment}
               onChange={(e) => onEnvironmentChange(e.target.value as Environment)}
-              className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm"
+              className="w-full border border-gray-600 rounded-md px-3 py-1.5 text-sm bg-gray-800 text-gray-200"
             >
               <option value="production">Production</option>
               <option value="staging">Staging</option>
@@ -113,11 +113,11 @@ export default function Header({ environment, onEnvironmentChange, view, onViewC
           )}
           <div className="flex items-center justify-between pt-2">
             <div className="flex items-center gap-3">
-              {user && <span className="text-sm text-gray-500">{user.email}</span>}
+              {user && <span className="text-sm text-gray-400">{user.email}</span>}
               {onOpenSettings && (
                 <button
                   onClick={() => { onOpenSettings(); setMenuOpen(false); }}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-gray-400 hover:text-gray-200"
                   aria-label="Settings"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,7 +129,7 @@ export default function Header({ environment, onEnvironmentChange, view, onViewC
             </div>
             <button
               onClick={logout}
-              className="text-sm text-gray-500 hover:text-gray-700"
+              className="text-sm text-gray-400 hover:text-gray-200"
             >
               Logout
             </button>

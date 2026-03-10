@@ -56,13 +56,13 @@ export default function EditFlagModal({ flag, onSave, onClose }: EditFlagModalPr
       aria-modal="true"
       aria-label={`Edit flag ${flag.key}`}
     >
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+      <div className="bg-gray-900 rounded-lg shadow-lg w-full max-w-md p-6 border border-gray-700">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Edit Flag</h3>
+          <h3 className="text-lg font-semibold text-gray-100">Edit Flag</h3>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-500 hover:text-gray-300"
             aria-label="Close"
           >
             &times;
@@ -70,13 +70,13 @@ export default function EditFlagModal({ flag, onSave, onClose }: EditFlagModalPr
         </div>
 
         {flag.type === 'build-time' && (
-          <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-md px-3 py-2 mb-4">
+          <div className="bg-amber-900/30 border border-amber-700 text-amber-300 text-sm rounded-md px-3 py-2 mb-4">
             ⚠ This is a build-time flag. Changes will not take effect until the app is rebuilt.
           </div>
         )}
 
-        <p className="text-sm text-gray-500 mb-1">Key</p>
-        <p className="font-mono text-sm mb-4">{flag.key}</p>
+        <p className="text-sm text-gray-400 mb-1">Key</p>
+        <p className="font-mono text-sm text-gray-200 mb-4">{flag.key}</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <FormInput
@@ -94,7 +94,7 @@ export default function EditFlagModal({ flag, onSave, onClose }: EditFlagModalPr
           />
 
           <div>
-            <label htmlFor="edit-flag-description" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="edit-flag-description" className="block text-sm font-medium text-gray-300 mb-1">
               Description
             </label>
             <input
@@ -102,17 +102,17 @@ export default function EditFlagModal({ flag, onSave, onClose }: EditFlagModalPr
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-red-400">{error}</p>}
 
           <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-4 py-2 text-sm font-medium text-gray-300 border border-gray-600 rounded-md hover:bg-gray-800"
             >
               Cancel
             </button>
