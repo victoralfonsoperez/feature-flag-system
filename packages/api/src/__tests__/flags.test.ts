@@ -328,26 +328,28 @@ describe('auth middleware blocks mutating routes without valid token', () => {
 // ── GET /api/flags/resolve ──────────────────────────────────────────────
 
 describe('GET /api/flags/resolve', () => {
-  it('returns a key-value map of all flags', async () => {
+  it('returns a key-value map of all flags with _variants metadata', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/flags/resolve' });
     expect(res.statusCode).toBe(200);
-    const resolved = res.json() as Record<string, string>;
+    const resolved = res.json();
     expect(resolved).toHaveProperty('maintenance_mode', 'false');
     expect(resolved).toHaveProperty('enable_new_checkout', 'true');
+    expect(resolved).toHaveProperty('_variants');
   });
 
   it('filters by type', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/flags/resolve?type=build-time' });
-    const resolved = res.json() as Record<string, string>;
+    const resolved = res.json();
     expect(resolved).toHaveProperty('api_base_url');
     expect(resolved).not.toHaveProperty('maintenance_mode');
   });
 
   it('filters by environment', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/flags/resolve?env=staging' });
-    const resolved = res.json() as Record<string, string>;
+    const resolved = res.json();
     expect(resolved).toHaveProperty('enable_signup', 'true');
-    expect(Object.keys(resolved).length).toBe(1);
+    // enable_signup + _variants
+    expect(Object.keys(resolved).length).toBe(2);
   });
 
   it('resolves A/B variant deterministically with user_id', async () => {
@@ -359,19 +361,79 @@ describe('GET /api/flags/resolve', () => {
       method: 'GET',
       url: '/api/flags/resolve?env=production&user_id=user-123',
     });
-    const resolved1 = res1.json() as Record<string, string>;
-    const resolved2 = res2.json() as Record<string, string>;
+    const resolved1 = res1.json();
+    const resolved2 = res2.json();
 
     expect(resolved1.cta_button_color).toBe(resolved2.cta_button_color);
     expect(['blue', 'green', 'orange']).toContain(resolved1.cta_button_color);
   });
 
-  it('returns default value when no user_id for variant flag', async () => {
+  it('includes variant metadata when user_id is provided', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/flags/resolve?env=production&user_id=user-123',
+    });
+    const resolved = res.json();
+    expect(resolved._variants).toHaveProperty('cta_button_color');
+    const meta = resolved._variants.cta_button_color;
+    expect(meta.flagKey).toBe('cta_button_color');
+    expect(['control', 'variant_a', 'variant_b']).toContain(meta.variant);
+  });
+
+  it('does not include variant metadata for non-variant flags', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/flags/resolve?env=production&user_id=user-123',
+    });
+    const resolved = res.json();
+    expect(resolved._variants).not.toHaveProperty('maintenance_mode');
+  });
+
+  it('returns empty _variants when no user_id is provided', async () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/flags/resolve?env=production',
     });
-    const resolved = res.json() as Record<string, string>;
+    const resolved = res.json();
+    expect(resolved._variants).toEqual({});
     expect(resolved.cta_button_color).toBe('blue');
+  });
+
+  it('distributes variants uniformly across 10k user IDs', () => {
+    // Test the hash distribution directly to avoid rate limiting
+    const variants = [
+      { name: 'control', value: 'blue', weight: 50 },
+      { name: 'variant_a', value: 'green', weight: 25 },
+      { name: 'variant_b', value: 'orange', weight: 25 },
+    ];
+    const totalWeight = variants.reduce((sum, v) => sum + v.weight, 0);
+    const counts: Record<string, number> = { blue: 0, green: 0, orange: 0 };
+    const total = 10_000;
+
+    for (let i = 0; i < total; i++) {
+      const userId = `user-${i}`;
+      // FNV-1a hash — must match resolveVariant implementation
+      let hash = 2166136261;
+      for (let j = 0; j < userId.length; j++) {
+        hash ^= userId.charCodeAt(j);
+        hash = Math.imul(hash, 16777619) >>> 0;
+      }
+      const bucket = hash % totalWeight;
+      let cumulative = 0;
+      for (const v of variants) {
+        cumulative += v.weight;
+        if (bucket < cumulative) {
+          counts[v.value]++;
+          break;
+        }
+      }
+    }
+
+    // Expected: control=50%, variant_a=25%, variant_b=25%
+    // Allow 5% tolerance
+    const tolerance = 0.05;
+    expect(Math.abs(counts.blue / total - 0.5)).toBeLessThan(tolerance);
+    expect(Math.abs(counts.green / total - 0.25)).toBeLessThan(tolerance);
+    expect(Math.abs(counts.orange / total - 0.25)).toBeLessThan(tolerance);
   });
 });

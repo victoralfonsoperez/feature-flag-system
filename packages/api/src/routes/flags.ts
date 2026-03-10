@@ -50,15 +50,18 @@ export async function flagRoutes(app: FastifyInstance) {
     const flags = app.db.prepare(sql).all(...params) as FlagRow[];
 
     const resolved: Record<string, string> = {};
+    const variants: Record<string, { variant: string; flagKey: string }> = {};
     for (const flag of flags) {
       if (flag.variants && user_id) {
-        resolved[flag.key] = resolveVariant(flag.variants, user_id);
+        const result = resolveVariant(flag.variants, user_id);
+        resolved[flag.key] = result.value;
+        variants[flag.key] = { variant: result.name, flagKey: flag.key };
       } else {
         resolved[flag.key] = flag.value;
       }
     }
 
-    return reply.send(resolved);
+    return reply.send({ ...resolved, _variants: variants });
   });
 
   // GET /api/flags/:key — get a single flag
@@ -182,17 +185,20 @@ export async function flagRoutes(app: FastifyInstance) {
   });
 }
 
-function resolveVariant(variantsJson: string, userId: string): string {
+type VariantResult = { name: string; value: string };
+
+function resolveVariant(variantsJson: string, userId: string): VariantResult {
   const variants = JSON.parse(variantsJson) as Array<{
     name: string;
     value: string;
     weight: number;
   }>;
 
-  // Deterministic hash based on user ID
-  let hash = 0;
+  // FNV-1a hash for better distribution
+  let hash = 2166136261;
   for (let i = 0; i < userId.length; i++) {
-    hash = (hash * 31 + userId.charCodeAt(i)) >>> 0;
+    hash ^= userId.charCodeAt(i);
+    hash = Math.imul(hash, 16777619) >>> 0;
   }
 
   const totalWeight = variants.reduce((sum, v) => sum + v.weight, 0);
@@ -202,9 +208,10 @@ function resolveVariant(variantsJson: string, userId: string): string {
   for (const variant of variants) {
     cumulative += variant.weight;
     if (bucket < cumulative) {
-      return variant.value;
+      return { name: variant.name, value: variant.value };
     }
   }
 
-  return variants[variants.length - 1].value;
+  const last = variants[variants.length - 1];
+  return { name: last.name, value: last.value };
 }
