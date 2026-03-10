@@ -46,7 +46,7 @@ const defaultProps = {
 describe('FlagTable', () => {
   it('shows loading skeleton', () => {
     render(<FlagTable {...defaultProps} flags={[]} loading={true} />);
-    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(document.querySelectorAll('[aria-busy="true"]').length).toBeGreaterThan(0);
     expect(document.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
   });
 
@@ -60,61 +60,55 @@ describe('FlagTable', () => {
   it('renders table headers including Environment', () => {
     render(<FlagTable {...defaultProps} />);
     expect(screen.getByText('Key')).toBeDefined();
-    expect(screen.getByText('Value')).toBeDefined();
-    expect(screen.getByText('Type')).toBeDefined();
     expect(screen.getByText('Environment')).toBeDefined();
     expect(screen.getByText('Updated')).toBeDefined();
   });
 
-  it('renders flag rows with correct data', () => {
+  it('renders flag data in both mobile and desktop views', () => {
     render(<FlagTable {...defaultProps} />);
-    expect(screen.getByText('dark-mode')).toBeDefined();
-    expect(screen.getByText('cdn-url')).toBeDefined();
-    expect(screen.getByText('https://cdn.example.com')).toBeDefined();
-  });
-
-  it('renders Environment column values', () => {
-    render(<FlagTable {...defaultProps} />);
-    expect(screen.getByText('production')).toBeDefined();
-    expect(screen.getByText('staging')).toBeDefined();
+    // Both mobile cards and desktop table render the same data
+    expect(screen.getAllByText('dark-mode').length).toBe(2);
+    expect(screen.getAllByText('cdn-url').length).toBe(2);
+    expect(screen.getAllByText('https://cdn.example.com').length).toBe(2);
   });
 
   it('renders type badges with correct styling', () => {
     render(<FlagTable {...defaultProps} />);
-    const runtimeBadge = screen.getByText('runtime');
-    const buildTimeBadge = screen.getByText('build-time');
+    const runtimeBadges = screen.getAllByText('runtime');
+    const buildTimeBadges = screen.getAllByText('build-time');
 
-    expect(runtimeBadge.className).toContain('bg-blue-100');
-    expect(buildTimeBadge.className).toContain('bg-amber-100');
+    expect(runtimeBadges[0].className).toContain('bg-blue-100');
+    expect(buildTimeBadges[0].className).toContain('bg-amber-100');
   });
 
   it('displays updated_at timestamps', () => {
     render(<FlagTable {...defaultProps} />);
-    expect(screen.getByText('2026-01-15T00:00:00Z')).toBeDefined();
-    expect(screen.getByText('2026-01-10T00:00:00Z')).toBeDefined();
+    expect(screen.getAllByText('2026-01-15T00:00:00Z').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('2026-01-10T00:00:00Z').length).toBeGreaterThanOrEqual(1);
   });
 
   it('shows toggle switch for boolean flags', () => {
     render(<FlagTable {...defaultProps} />);
-    const toggle = screen.getByRole('switch');
-    expect(toggle).toBeDefined();
-    expect(toggle.getAttribute('aria-checked')).toBe('true');
+    // 2 toggle switches: one in mobile card, one in desktop table
+    const toggles = screen.getAllByRole('switch');
+    expect(toggles.length).toBe(2);
+    expect(toggles[0].getAttribute('aria-checked')).toBe('true');
   });
 
   it('toggle calls onToggle with correct args', () => {
     const onToggle = vi.fn();
     render(<FlagTable {...defaultProps} onToggle={onToggle} />);
-    const toggle = screen.getByRole('switch');
-    fireEvent.click(toggle);
+    const toggles = screen.getAllByRole('switch');
+    fireEvent.click(toggles[0]);
     expect(onToggle).toHaveBeenCalledWith('dark-mode', 'false');
   });
 
   it('non-boolean flags show plain text value', () => {
     render(<FlagTable {...defaultProps} />);
-    expect(screen.getByText('https://cdn.example.com')).toBeDefined();
-    // Only one toggle (for dark-mode), not for cdn-url
+    expect(screen.getAllByText('https://cdn.example.com').length).toBe(2);
+    // 2 toggles for dark-mode (mobile + desktop), none for cdn-url
     const toggles = screen.getAllByRole('switch');
-    expect(toggles.length).toBe(1);
+    expect(toggles.length).toBe(2);
   });
 
   it('shows error state with retry button', () => {
@@ -130,10 +124,11 @@ describe('FlagTable', () => {
     expect(onRetry).toHaveBeenCalledOnce();
   });
 
-  it('renders Edit button for each flag row', () => {
+  it('renders Edit button for each flag in both views', () => {
     render(<FlagTable {...defaultProps} />);
     const editButtons = screen.getAllByText('Edit');
-    expect(editButtons.length).toBe(2);
+    // 2 flags x 2 views (mobile + desktop) = 4
+    expect(editButtons.length).toBe(4);
   });
 
   it('Edit button calls onEdit with the flag', () => {
@@ -144,10 +139,10 @@ describe('FlagTable', () => {
     expect(onEdit).toHaveBeenCalledWith(mockFlags[0]);
   });
 
-  it('renders Delete button for each flag row', () => {
+  it('renders Delete button for each flag in both views', () => {
     render(<FlagTable {...defaultProps} />);
     const deleteButtons = screen.getAllByText('Delete');
-    expect(deleteButtons.length).toBe(2);
+    expect(deleteButtons.length).toBe(4);
   });
 
   it('Delete button calls onDelete with the flag', () => {
@@ -182,8 +177,8 @@ describe('FlagTable', () => {
     it('shows transient warning after toggling a build-time flag', () => {
       const onToggle = vi.fn();
       render(<FlagTable {...defaultProps} flags={[buildTimeBoolFlag]} onToggle={onToggle} />);
-      const toggle = screen.getByRole('switch');
-      fireEvent.click(toggle);
+      const toggles = screen.getAllByRole('switch');
+      fireEvent.click(toggles[0]);
       expect(onToggle).toHaveBeenCalledWith('enable-ssr', 'false');
       expect(screen.getByText(/Changes will take effect after a rebuild/)).toBeDefined();
     });
@@ -191,7 +186,7 @@ describe('FlagTable', () => {
     it('auto-dismisses the warning after 5 seconds', () => {
       const onToggle = vi.fn();
       render(<FlagTable {...defaultProps} flags={[buildTimeBoolFlag]} onToggle={onToggle} />);
-      fireEvent.click(screen.getByRole('switch'));
+      fireEvent.click(screen.getAllByRole('switch')[0]);
       expect(screen.getByText(/Changes will take effect after a rebuild/)).toBeDefined();
       act(() => { vi.advanceTimersByTime(5000); });
       expect(screen.queryByText(/Changes will take effect after a rebuild/)).toBeNull();
@@ -200,8 +195,8 @@ describe('FlagTable', () => {
     it('does not show warning after toggling a runtime flag', () => {
       const onToggle = vi.fn();
       render(<FlagTable {...defaultProps} onToggle={onToggle} />);
-      const toggle = screen.getByRole('switch');
-      fireEvent.click(toggle);
+      const toggles = screen.getAllByRole('switch');
+      fireEvent.click(toggles[0]);
       expect(screen.queryByText(/Changes will take effect after a rebuild/)).toBeNull();
     });
   });

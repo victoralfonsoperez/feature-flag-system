@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Environment } from '../types';
 import { useAuth } from '../auth/AuthContext';
 
@@ -6,62 +7,42 @@ type HeaderProps = {
   onEnvironmentChange: (env: Environment) => void;
   view: 'flags' | 'tokens' | 'users' | 'activity';
   onViewChange: (view: 'flags' | 'tokens' | 'users' | 'activity') => void;
+  onOpenSettings?: () => void;
 };
 
-export default function Header({ environment, onEnvironmentChange, view, onViewChange }: HeaderProps) {
+export default function Header({ environment, onEnvironmentChange, view, onViewChange, onOpenSettings }: HeaderProps) {
   const { user, logout } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  function navButton(label: string, target: typeof view) {
+    return (
+      <button
+        onClick={() => { onViewChange(target); setMenuOpen(false); }}
+        className={`text-sm px-3 py-1 rounded-md ${
+          view === target
+            ? 'bg-gray-100 text-gray-900 font-medium'
+            : 'text-gray-500 hover:text-gray-700'
+        }`}
+      >
+        {label}
+      </button>
+    );
+  }
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <header className="bg-white border-b border-gray-200 px-4 md:px-6 py-4">
       <div className="flex items-center justify-between max-w-6xl mx-auto">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 md:gap-6">
           <h1 className="text-xl font-semibold text-gray-900">Feature Flags</h1>
-          <nav className="flex gap-2">
-            <button
-              onClick={() => onViewChange('flags')}
-              className={`text-sm px-3 py-1 rounded-md ${
-                view === 'flags'
-                  ? 'bg-gray-100 text-gray-900 font-medium'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Flags
-            </button>
-            <button
-              onClick={() => onViewChange('tokens')}
-              className={`text-sm px-3 py-1 rounded-md ${
-                view === 'tokens'
-                  ? 'bg-gray-100 text-gray-900 font-medium'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              API Tokens
-            </button>
-            <button
-              onClick={() => onViewChange('activity')}
-              className={`text-sm px-3 py-1 rounded-md ${
-                view === 'activity'
-                  ? 'bg-gray-100 text-gray-900 font-medium'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              Activity
-            </button>
-            {user?.role === 'admin' && (
-              <button
-                onClick={() => onViewChange('users')}
-                className={`text-sm px-3 py-1 rounded-md ${
-                  view === 'users'
-                    ? 'bg-gray-100 text-gray-900 font-medium'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Users
-              </button>
-            )}
+          {/* Desktop nav */}
+          <nav className="hidden md:flex gap-2">
+            {navButton('Flags', 'flags')}
+            {navButton('API Tokens', 'tokens')}
+            {navButton('Activity', 'activity')}
+            {user?.role === 'admin' && navButton('Users', 'users')}
           </nav>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-4">
           {view === 'flags' && (
             <select
               value={environment}
@@ -73,6 +54,18 @@ export default function Header({ environment, onEnvironmentChange, view, onViewC
               <option value="development">Development</option>
             </select>
           )}
+          {onOpenSettings && (
+            <button
+              onClick={onOpenSettings}
+              className="text-gray-500 hover:text-gray-700"
+              aria-label="Settings"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+          )}
           {user && (
             <span className="text-sm text-gray-500">{user.email}</span>
           )}
@@ -83,7 +76,66 @@ export default function Header({ environment, onEnvironmentChange, view, onViewC
             Logout
           </button>
         </div>
+        {/* Mobile hamburger */}
+        <button
+          className="md:hidden text-gray-500 hover:text-gray-700"
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Toggle menu"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {menuOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
       </div>
+      {/* Mobile menu */}
+      {menuOpen && (
+        <div className="md:hidden mt-3 pt-3 border-t border-gray-200 space-y-2">
+          <nav className="flex flex-col gap-1">
+            {navButton('Flags', 'flags')}
+            {navButton('API Tokens', 'tokens')}
+            {navButton('Activity', 'activity')}
+            {user?.role === 'admin' && navButton('Users', 'users')}
+          </nav>
+          {view === 'flags' && (
+            <select
+              value={environment}
+              onChange={(e) => onEnvironmentChange(e.target.value as Environment)}
+              className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm"
+            >
+              <option value="production">Production</option>
+              <option value="staging">Staging</option>
+              <option value="development">Development</option>
+            </select>
+          )}
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-3">
+              {user && <span className="text-sm text-gray-500">{user.email}</span>}
+              {onOpenSettings && (
+                <button
+                  onClick={() => { onOpenSettings(); setMenuOpen(false); }}
+                  className="text-gray-500 hover:text-gray-700"
+                  aria-label="Settings"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </button>
+              )}
+            </div>
+            <button
+              onClick={logout}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      )}
     </header>
   );
 }

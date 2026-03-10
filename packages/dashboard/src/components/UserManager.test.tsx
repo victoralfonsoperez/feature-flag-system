@@ -23,6 +23,10 @@ vi.mock('../auth/AuthContext', () => ({
   }),
 }));
 
+vi.mock('./Toast', () => ({
+  useToast: () => ({ showToast: vi.fn() }),
+}));
+
 beforeEach(() => {
   mockGetUsers.mockReset();
   mockCreateUser.mockReset();

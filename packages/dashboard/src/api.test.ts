@@ -43,6 +43,7 @@ function errorResponse(status: number, error: string) {
 
 beforeEach(() => {
   mockFetch.mockReset();
+  localStorage.clear();
 });
 
 describe('getFlags', () => {

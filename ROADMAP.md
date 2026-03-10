@@ -124,10 +124,10 @@ Build the web dashboard for managing flags.
 
 ##### Layout & polish
 - [x] Add a top navigation bar with app title and links (Flags, Activity Log)
-- [ ] Add toast/notification system for success and error feedback
-- [ ] Add responsive layout that works on mobile viewports
-- [ ] Add keyboard shortcut: Escape to close modals
-- [ ] Handle API token configuration (environment variable or settings input for the dashboard)
+- [x] Add toast/notification system for success and error feedback
+- [x] Add responsive layout that works on mobile viewports
+- [x] Add keyboard shortcut: Escape to close modals
+- [x] Handle API token configuration (environment variable or settings input for the dashboard)
 
 **Milestone:** Flags can be created, viewed, edited, and deleted entirely from the dashboard.
 
