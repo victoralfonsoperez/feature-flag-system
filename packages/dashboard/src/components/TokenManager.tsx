@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { getTokens, createToken, deleteToken } from '../api';
+import { useToast } from './Toast';
 
 type Token = { id: number; name: string; created_at: string; last_used_at: string | null };
 
@@ -10,6 +11,7 @@ export default function TokenManager() {
   const [newToken, setNewToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { showToast } = useToast();
 
   useEffect(() => {
     loadTokens();
@@ -34,8 +36,11 @@ export default function TokenManager() {
       setNewToken(data.token);
       setName('');
       await loadTokens();
+      showToast('Token created', 'success');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create token');
+      const msg = err instanceof Error ? err.message : 'Failed to create token';
+      setError(msg);
+      showToast(msg, 'error');
     }
   }
 
@@ -44,8 +49,11 @@ export default function TokenManager() {
     try {
       await deleteToken(id);
       setTokens((prev) => prev.filter((t) => t.id !== id));
+      showToast('Token revoked', 'success');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete token');
+      const msg = err instanceof Error ? err.message : 'Failed to delete token';
+      setError(msg);
+      showToast(msg, 'error');
     }
   }
 
