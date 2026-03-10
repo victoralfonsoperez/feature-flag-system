@@ -32,8 +32,10 @@ export function saveSettings(settings: DashboardSettings): void {
 function getBaseUrl(): string {
   const saved = getSettings().apiUrl;
   if (saved) return saved;
-  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const env = (import.meta as any).env;
+  if (env?.VITE_API_URL) {
+    return env.VITE_API_URL as string;
   }
   return '/api';
 }
