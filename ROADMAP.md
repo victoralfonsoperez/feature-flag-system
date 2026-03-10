@@ -149,9 +149,9 @@ Ship the React SDK for runtime flags.
 - [x] Write unit tests for hooks and fallback behavior
 
 #### SDK caching
-- [ ] Add configurable caching with `sessionStorage` and TTL (e.g. `cacheTtl` prop on `FlagProvider`)
-- [ ] On mount, check `sessionStorage` for cached flags within TTL — use cached values immediately while re-fetching in the background
-- [ ] Write tests for cache hit, cache miss, and cache expiration scenarios
+- [x] Add configurable caching with `sessionStorage` and TTL (e.g. `cacheTtl` prop on `FlagProvider`)
+- [x] On mount, check `sessionStorage` for cached flags within TTL — use cached values immediately while re-fetching in the background
+- [x] Write tests for cache hit, cache miss, and cache expiration scenarios
 
 **Milestone:** Any React app can consume runtime flags via the SDK.
 
