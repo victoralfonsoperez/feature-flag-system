@@ -11,14 +11,22 @@ export type DashboardSettings = {
 
 export function getSettings(): DashboardSettings {
   try {
-    return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+    const raw = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+    if (raw.apiToken) {
+      raw.apiToken = atob(raw.apiToken);
+    }
+    return raw;
   } catch {
     return {};
   }
 }
 
 export function saveSettings(settings: DashboardSettings): void {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  const toStore = { ...settings };
+  if (toStore.apiToken) {
+    toStore.apiToken = btoa(toStore.apiToken);
+  }
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(toStore));
 }
 
 function getBaseUrl(): string {

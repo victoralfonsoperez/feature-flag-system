@@ -24,7 +24,7 @@ describe('SettingsModal', () => {
   it('loads saved settings from localStorage', () => {
     localStorage.setItem('ff-dashboard-settings', JSON.stringify({
       apiUrl: 'https://api.example.com',
-      apiToken: 'my-token',
+      apiToken: btoa('my-token'),
     }));
     render(<SettingsModal onClose={() => {}} />);
     expect((screen.getByLabelText('API Base URL') as HTMLInputElement).value).toBe('https://api.example.com');
@@ -41,7 +41,7 @@ describe('SettingsModal', () => {
 
     const saved = JSON.parse(localStorage.getItem('ff-dashboard-settings')!);
     expect(saved.apiUrl).toBe('https://my-api.com');
-    expect(saved.apiToken).toBe('secret');
+    expect(saved.apiToken).toBe(btoa('secret'));
     expect(mockShowToast).toHaveBeenCalledWith('Settings saved', 'success');
     expect(onClose).toHaveBeenCalled();
   });
