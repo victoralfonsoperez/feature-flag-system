@@ -1,0 +1,243 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, act, cleanup } from '@testing-library/react';
+import { createElement } from 'react';
+import { FlagProvider, FlagContext } from '../FlagProvider.js';
+import { useContext } from 'react';
+
+function FlagDisplay() {
+  const flags = useContext(FlagContext);
+  return createElement('pre', { 'data-testid': 'flags' }, JSON.stringify(flags));
+}
+
+const mockFetch = vi.fn();
+vi.stubGlobal('fetch', mockFetch);
+
+function jsonResponse(data: unknown) {
+  return Promise.resolve({
+    json: () => Promise.resolve(data),
+  });
+}
+
+beforeEach(() => {
+  mockFetch.mockReset();
+  sessionStorage.clear();
+});
+
+afterEach(cleanup);
+
+describe('FlagProvider caching', () => {
+  it('fetches flags from API when no cache exists', async () => {
+    mockFetch.mockReturnValue(jsonResponse({ dark_mode: 'true' }));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          cacheTtl: 60,
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    expect(mockFetch).toHaveBeenCalledOnce();
+    expect(screen.getByTestId('flags').textContent).toBe(
+      JSON.stringify({ dark_mode: 'true' }),
+    );
+  });
+
+  it('writes fetched flags to sessionStorage', async () => {
+    mockFetch.mockReturnValue(jsonResponse({ banner: 'hello' }));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          cacheTtl: 60,
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    const cacheKey = 'ff-sdk-cache:http://localhost:3100:production';
+    const cached = JSON.parse(sessionStorage.getItem(cacheKey)!);
+    expect(cached.flags).toEqual({ banner: 'hello' });
+    expect(cached.timestamp).toBeGreaterThan(0);
+  });
+
+  it('uses cached flags immediately on mount (cache hit)', async () => {
+    const cacheKey = 'ff-sdk-cache:http://localhost:3100:production';
+    sessionStorage.setItem(cacheKey, JSON.stringify({
+      flags: { cached_flag: 'yes' },
+      timestamp: Date.now(),
+    }));
+
+    // Fetch resolves later with updated data
+    mockFetch.mockReturnValue(jsonResponse({ cached_flag: 'updated' }));
+
+    // On initial render, cached values should be available immediately (ready=true)
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          cacheTtl: 60,
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    // Fetch still fires in the background (stale-while-revalidate)
+    expect(mockFetch).toHaveBeenCalledOnce();
+  });
+
+  it('updates flags after background re-fetch on cache hit', async () => {
+    const cacheKey = 'ff-sdk-cache:http://localhost:3100:production';
+    sessionStorage.setItem(cacheKey, JSON.stringify({
+      flags: { flag: 'old' },
+      timestamp: Date.now(),
+    }));
+
+    mockFetch.mockReturnValue(jsonResponse({ flag: 'new' }));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          cacheTtl: 60,
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    // After fetch resolves, flags should be updated
+    expect(screen.getByTestId('flags').textContent).toBe(
+      JSON.stringify({ flag: 'new' }),
+    );
+  });
+
+  it('treats expired cache as a miss', async () => {
+    const cacheKey = 'ff-sdk-cache:http://localhost:3100:production';
+    sessionStorage.setItem(cacheKey, JSON.stringify({
+      flags: { expired: 'true' },
+      timestamp: Date.now() - 120_000, // 2 minutes ago
+    }));
+
+    mockFetch.mockReturnValue(jsonResponse({ fresh: 'true' }));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          cacheTtl: 60, // 60 second TTL — cache is expired
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    // Should not use expired cache, should use fetched data
+    expect(screen.getByTestId('flags').textContent).toBe(
+      JSON.stringify({ fresh: 'true' }),
+    );
+  });
+
+  it('does not cache when cacheTtl is 0', async () => {
+    mockFetch.mockReturnValue(jsonResponse({ no_cache: 'true' }));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          cacheTtl: 0,
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    expect(sessionStorage.length).toBe(0);
+  });
+
+  it('does not cache when cacheTtl is not set', async () => {
+    mockFetch.mockReturnValue(jsonResponse({ no_cache: 'true' }));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    expect(sessionStorage.length).toBe(0);
+  });
+
+  it('uses separate cache keys per environment', async () => {
+    mockFetch.mockReturnValue(jsonResponse({ env_flag: 'staging' }));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          environment: 'staging',
+          cacheTtl: 60,
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    const stagingKey = 'ff-sdk-cache:http://localhost:3100:staging';
+    const prodKey = 'ff-sdk-cache:http://localhost:3100:production';
+    expect(sessionStorage.getItem(stagingKey)).not.toBeNull();
+    expect(sessionStorage.getItem(prodKey)).toBeNull();
+  });
+
+  it('uses separate cache keys per userId', async () => {
+    mockFetch.mockReturnValue(jsonResponse({ user_flag: 'a' }));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          userId: 'user-123',
+          cacheTtl: 60,
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    const userKey = 'ff-sdk-cache:http://localhost:3100:production:user-123';
+    expect(sessionStorage.getItem(userKey)).not.toBeNull();
+  });
+
+  it('falls back to defaults on fetch error with no cache', async () => {
+    mockFetch.mockReturnValue(Promise.reject(new Error('Network error')));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          defaults: { fallback: 'yes' },
+          cacheTtl: 60,
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    expect(screen.getByTestId('flags').textContent).toBe(
+      JSON.stringify({ fallback: 'yes' }),
+    );
+  });
+
+  it('keeps cached values on fetch error when cache exists', async () => {
+    const cacheKey = 'ff-sdk-cache:http://localhost:3100:production';
+    sessionStorage.setItem(cacheKey, JSON.stringify({
+      flags: { cached: 'value' },
+      timestamp: Date.now(),
+    }));
+
+    mockFetch.mockReturnValue(Promise.reject(new Error('Network error')));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          cacheTtl: 60,
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    // Should keep the cached values, not revert to empty defaults
+    expect(screen.getByTestId('flags').textContent).toBe(
+      JSON.stringify({ cached: 'value' }),
+    );
+  });
+});
