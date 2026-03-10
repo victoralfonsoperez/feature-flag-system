@@ -48,7 +48,7 @@ describe('Header', () => {
   it('applies active style to button matching current view', () => {
     render(<Header {...defaultProps} view="users" />);
     const usersButtons = screen.getAllByText('Users');
-    expect(usersButtons[0].className).toContain('bg-gray-100');
+    expect(usersButtons[0].className).toContain('bg-gray-800');
   });
 
   it('shows user email', () => {

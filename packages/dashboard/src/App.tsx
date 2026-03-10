@@ -92,14 +92,14 @@ function Dashboard() {
   }
 
   if (isLoading || setupRequired === null) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-50"><p className="text-gray-500">Loading...</p></div>;
+    return <div className="min-h-screen flex items-center justify-center bg-gray-950"><p className="text-gray-400">Loading...</p></div>;
   }
 
   if (setupRequired) return <SetupForm />;
   if (!isAuthenticated) return <LoginForm />;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-950">
       <Header
         environment={environment}
         onEnvironmentChange={setEnvironment}

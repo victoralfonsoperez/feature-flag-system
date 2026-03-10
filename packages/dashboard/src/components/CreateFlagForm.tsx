@@ -68,8 +68,8 @@ export default function CreateFlagForm({ onSubmit }: CreateFlagFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-      <h3 className="text-sm font-semibold text-gray-900 mb-3">Create Flag</h3>
+    <form onSubmit={handleSubmit} className="bg-gray-900 rounded-lg border border-gray-700 p-4 mb-6">
+      <h3 className="text-sm font-semibold text-gray-100 mb-3">Create Flag</h3>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
         <FormInput
@@ -101,14 +101,14 @@ export default function CreateFlagForm({ onSubmit }: CreateFlagFormProps) {
           }
         />
         <div>
-          <label htmlFor="flag-type" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="flag-type" className="block text-sm font-medium text-gray-300 mb-1">
             Type
           </label>
           <select
             id="flag-type"
             value={type}
             onChange={(e) => setType(e.target.value as CreateFlagInput['type'])}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             {FLAG_TYPES.map((t) => (
               <option key={t} value={t}>{t}</option>
@@ -116,14 +116,14 @@ export default function CreateFlagForm({ onSubmit }: CreateFlagFormProps) {
           </select>
         </div>
         <div>
-          <label htmlFor="flag-environment" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="flag-environment" className="block text-sm font-medium text-gray-300 mb-1">
             Environment
           </label>
           <select
             id="flag-environment"
             value={environment}
             onChange={(e) => setEnvironment(e.target.value as Environment)}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             {ENVIRONMENTS.map((env) => (
               <option key={env} value={env}>{env}</option>
@@ -133,13 +133,13 @@ export default function CreateFlagForm({ onSubmit }: CreateFlagFormProps) {
       </div>
 
       {type === 'build-time' && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-md px-3 py-2 mb-3">
+        <div className="bg-amber-900/30 border border-amber-700 text-amber-300 text-sm rounded-md px-3 py-2 mb-3">
           ⚠ Build-time flags require a rebuild to take effect. If GitHub integration is configured, a rebuild is triggered automatically.
         </div>
       )}
 
       <div className="mb-3">
-        <label htmlFor="flag-description" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="flag-description" className="block text-sm font-medium text-gray-300 mb-1">
           Description
         </label>
         <input
@@ -148,11 +148,11 @@ export default function CreateFlagForm({ onSubmit }: CreateFlagFormProps) {
           placeholder="Optional description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
       </div>
 
-      {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+      {error && <p className="text-sm text-red-400 mb-3">{error}</p>}
 
       <button
         type="submit"

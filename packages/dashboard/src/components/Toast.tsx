@@ -48,15 +48,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             role="alert"
             className={`flex items-center gap-2 rounded-md border px-4 py-3 text-sm shadow-lg ${
               toast.type === 'success'
-                ? 'bg-green-50 border-green-200 text-green-800'
-                : 'bg-red-50 border-red-200 text-red-800'
+                ? 'bg-green-900/30 border-green-700 text-green-300'
+                : 'bg-red-900/30 border-red-700 text-red-300'
             }`}
           >
             <span className="flex-1">{toast.message}</span>
             <button
               onClick={() => dismiss(toast.id)}
               className={`ml-2 font-medium hover:opacity-70 ${
-                toast.type === 'success' ? 'text-green-600' : 'text-red-600'
+                toast.type === 'success' ? 'text-green-400' : 'text-red-400'
               }`}
               aria-label="Dismiss"
             >

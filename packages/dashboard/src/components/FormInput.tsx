@@ -10,16 +10,16 @@ interface FormInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id
 }
 
 const borderColors: Record<InputStatus, string> = {
-  idle: 'border-gray-300',
+  idle: 'border-gray-600',
   error: 'border-red-500',
   success: 'border-green-500',
   warning: 'border-amber-500',
 };
 
 const messageColors: Record<string, string> = {
-  error: 'text-red-600',
-  success: 'text-green-600',
-  warning: 'text-amber-600',
+  error: 'text-red-400',
+  success: 'text-green-400',
+  warning: 'text-amber-400',
 };
 
 export default function FormInput({
@@ -32,12 +32,12 @@ export default function FormInput({
 }: FormInputProps) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+      <label htmlFor={id} className="block text-sm font-medium text-gray-300 mb-1">
         {label}
       </label>
       <input
         id={id}
-        className={`w-full border rounded-md px-3 py-2 text-sm ${borderColors[status]} focus:outline-none focus:ring-1 ${
+        className={`w-full border rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 ${borderColors[status]} focus:outline-none focus:ring-1 ${
           status === 'error'
             ? 'focus:ring-red-500'
             : status === 'success'

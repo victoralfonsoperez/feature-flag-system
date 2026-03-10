@@ -59,7 +59,7 @@ export default function TokenManager() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">API Tokens</h2>
+      <h2 className="text-lg font-semibold text-gray-100 mb-4">API Tokens</h2>
 
       <form onSubmit={handleCreate} className="flex gap-3 mb-6">
         <input
@@ -68,7 +68,7 @@ export default function TokenManager() {
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
+          className="flex-1 border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200"
         />
         <button
           type="submit"
@@ -79,32 +79,32 @@ export default function TokenManager() {
       </form>
 
       {newToken && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
-          <p className="text-sm font-medium text-green-800 mb-2">
+        <div className="mb-6 p-4 bg-green-900/30 border border-green-700 rounded-md">
+          <p className="text-sm font-medium text-green-300 mb-2">
             Token created. Copy it now — it won't be shown again.
           </p>
-          <code className="block p-2 bg-white border border-green-300 rounded text-sm font-mono break-all select-all">
+          <code className="block p-2 bg-gray-800 border border-green-700 rounded text-sm font-mono break-all select-all text-green-200">
             {newToken}
           </code>
           <button
             onClick={() => setNewToken(null)}
-            className="mt-2 text-sm text-green-700 hover:underline"
+            className="mt-2 text-xs px-2.5 py-1 rounded-md bg-green-900/40 text-green-300 hover:bg-green-900/60"
           >
             Dismiss
           </button>
         </div>
       )}
 
-      {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+      {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
 
       {loading ? (
-        <p className="text-gray-500 text-sm">Loading tokens...</p>
+        <p className="text-gray-400 text-sm">Loading tokens...</p>
       ) : tokens.length === 0 ? (
-        <p className="text-gray-500 text-sm">No API tokens yet.</p>
+        <p className="text-gray-400 text-sm">No API tokens yet.</p>
       ) : (
-        <table className="w-full bg-white rounded-lg border border-gray-200">
+        <table className="w-full bg-gray-900 rounded-lg border border-gray-700">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-sm text-gray-600">
+            <tr className="border-b border-gray-700 text-left text-sm text-gray-400">
               <th className="px-4 py-3">Name</th>
               <th className="px-4 py-3">Created</th>
               <th className="px-4 py-3">Last Used</th>
@@ -113,16 +113,16 @@ export default function TokenManager() {
           </thead>
           <tbody>
             {tokens.map((token) => (
-              <tr key={token.id} className="border-b border-gray-100">
-                <td className="px-4 py-3 text-sm font-medium">{token.name}</td>
-                <td className="px-4 py-3 text-sm text-gray-500">{token.created_at}</td>
-                <td className="px-4 py-3 text-sm text-gray-500">
+              <tr key={token.id} className="border-b border-gray-800">
+                <td className="px-4 py-3 text-sm font-medium text-gray-200">{token.name}</td>
+                <td className="px-4 py-3 text-sm text-gray-400">{token.created_at}</td>
+                <td className="px-4 py-3 text-sm text-gray-400">
                   {token.last_used_at ?? 'Never'}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <button
                     onClick={() => handleDelete(token.id)}
-                    className="text-sm text-red-600 hover:underline"
+                    className="text-xs px-2.5 py-1 rounded-md bg-red-900/40 text-red-300 hover:bg-red-900/60"
                   >
                     Revoke
                   </button>

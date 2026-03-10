@@ -40,30 +40,30 @@ export default function DeleteFlagModal({ flag, onConfirm, onClose }: DeleteFlag
       aria-modal="true"
       aria-label={`Delete flag ${flag.key}`}
     >
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+      <div className="bg-gray-900 rounded-lg shadow-lg w-full max-w-md p-6 border border-gray-700">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">Delete Flag</h3>
+          <h3 className="text-lg font-semibold text-gray-100">Delete Flag</h3>
           <button
             type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-500 hover:text-gray-300"
             aria-label="Close"
           >
             &times;
           </button>
         </div>
 
-        <p className="text-sm text-gray-700 mb-6">
+        <p className="text-sm text-gray-300 mb-6">
           Are you sure you want to delete <strong>{flag.key}</strong>?
         </p>
 
-        {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+        {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
 
         <div className="flex justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+            className="px-4 py-2 text-sm font-medium text-gray-300 border border-gray-600 rounded-md hover:bg-gray-800"
           >
             Cancel
           </button>

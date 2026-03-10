@@ -37,14 +37,14 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40 p-4">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
+      <div className="bg-gray-900 rounded-lg shadow-lg w-full max-w-md mx-4 border border-gray-700">
         <div className="flex items-center justify-between px-6 pt-6 pb-2">
-          <h2 className="text-lg font-semibold text-gray-900">Settings</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">&times;</button>
+          <h2 className="text-lg font-semibold text-gray-100">Settings</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-300">&times;</button>
         </div>
         <div className="px-6 py-4 space-y-4">
           <div>
-            <label htmlFor="settings-api-url" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="settings-api-url" className="block text-sm font-medium text-gray-300 mb-1">
               API Base URL
             </label>
             <input
@@ -53,14 +53,14 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               placeholder="/api"
               value={apiUrl}
               onChange={(e) => setApiUrl(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-400 mt-1">
               Override the default API endpoint. Leave empty to use the default.
             </p>
           </div>
           <div>
-            <label htmlFor="settings-api-token" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="settings-api-token" className="block text-sm font-medium text-gray-300 mb-1">
               Bearer Token
             </label>
             <input
@@ -69,9 +69,9 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               placeholder="Enter API token"
               value={apiToken}
               onChange={(e) => setApiToken(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-400 mt-1">
               Attach a Bearer token to all API requests. Useful when the dashboard is hosted separately.
             </p>
           </div>
@@ -79,7 +79,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
         <div className="px-6 pb-6 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+            className="px-4 py-2 text-sm text-gray-300 border border-gray-600 rounded-md hover:bg-gray-800"
           >
             Cancel
           </button>

@@ -1,1 +1,19 @@
 @import 'tailwindcss';
+
+button, [role="switch"], select, a, [role="button"] {
+  cursor: pointer;
+}
+
+input, select, textarea {
+  background-color: var(--color-gray-800);
+  color: var(--color-gray-200);
+}
+
+select {
+  background-position: right 10px center;
+}
+
+option {
+  background-color: var(--color-gray-800);
+  color: var(--color-gray-200);
+}

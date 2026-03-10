@@ -81,9 +81,9 @@ describe('AuditLog', () => {
     const updated = screen.getByText('updated');
     const deleted = screen.getByText('deleted');
 
-    expect(created.className).toContain('bg-green-100');
-    expect(updated.className).toContain('bg-blue-100');
-    expect(deleted.className).toContain('bg-red-100');
+    expect(created.className).toContain('bg-green-900/40');
+    expect(updated.className).toContain('bg-blue-900/40');
+    expect(deleted.className).toContain('bg-red-900/40');
   });
 
   it('passes flagKey to API call', async () => {

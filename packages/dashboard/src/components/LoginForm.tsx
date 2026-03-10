@@ -43,9 +43,9 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-sm bg-white rounded-lg border border-gray-200 p-8">
-        <h1 className="text-xl font-semibold text-gray-900 mb-6">Sign In</h1>
+    <div className="min-h-screen flex items-center justify-center bg-gray-950">
+      <div className="w-full max-w-sm bg-gray-900 rounded-lg border border-gray-700 p-8">
+        <h1 className="text-xl font-semibold text-gray-100 mb-6">Sign In</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <FormInput
             id="email"
@@ -71,7 +71,7 @@ export default function LoginForm() {
             status="idle"
           />
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-red-400">{error}</p>}
           <button
             type="submit"
             disabled={!formValid || loading}

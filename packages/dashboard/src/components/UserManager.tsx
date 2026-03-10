@@ -91,7 +91,7 @@ export default function UserManager() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Users</h2>
+      <h2 className="text-lg font-semibold text-gray-100 mb-4">Users</h2>
 
       <form onSubmit={handleCreate} className="mb-6 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -130,14 +130,14 @@ export default function UserManager() {
             }
           />
           <div>
-            <label htmlFor="user-role" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="user-role" className="block text-sm font-medium text-gray-300 mb-1">
               Role
             </label>
             <select
               id="user-role"
               value={role}
               onChange={(e) => setRole(e.target.value as 'admin' | 'viewer')}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="viewer">Viewer</option>
               <option value="admin">Admin</option>
@@ -152,16 +152,16 @@ export default function UserManager() {
         </button>
       </form>
 
-      {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+      {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
 
       {loading ? (
-        <p className="text-gray-500 text-sm">Loading users...</p>
+        <p className="text-gray-400 text-sm">Loading users...</p>
       ) : users.length === 0 ? (
-        <p className="text-gray-500 text-sm">No users found.</p>
+        <p className="text-gray-400 text-sm">No users found.</p>
       ) : (
-        <table className="w-full bg-white rounded-lg border border-gray-200">
+        <table className="w-full bg-gray-900 rounded-lg border border-gray-700">
           <thead>
-            <tr className="border-b border-gray-200 text-left text-sm text-gray-600">
+            <tr className="border-b border-gray-700 text-left text-sm text-gray-400">
               <th className="px-4 py-3">Email</th>
               <th className="px-4 py-3">Role</th>
               <th className="px-4 py-3">Created</th>
@@ -170,15 +170,15 @@ export default function UserManager() {
           </thead>
           <tbody>
             {users.map((u) => (
-              <tr key={u.id} className="border-b border-gray-100">
-                <td className="px-4 py-3 text-sm font-medium">{u.email}</td>
-                <td className="px-4 py-3 text-sm text-gray-500 capitalize">{u.role}</td>
-                <td className="px-4 py-3 text-sm text-gray-500">{u.created_at}</td>
+              <tr key={u.id} className="border-b border-gray-800">
+                <td className="px-4 py-3 text-sm font-medium text-gray-200">{u.email}</td>
+                <td className="px-4 py-3 text-sm text-gray-400 capitalize">{u.role}</td>
+                <td className="px-4 py-3 text-sm text-gray-400">{u.created_at}</td>
                 <td className="px-4 py-3 text-right">
                   {u.id !== currentUser?.id && (
                     <button
                       onClick={() => handleDelete(u.id)}
-                      className="text-sm text-red-600 hover:underline"
+                      className="text-xs px-2.5 py-1 rounded-md bg-red-900/40 text-red-300 hover:bg-red-900/60"
                     >
                       Delete
                     </button>
