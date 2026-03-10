@@ -2,6 +2,10 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import CreateFlagForm from './CreateFlagForm';
 
+vi.mock('./Toast', () => ({
+  useToast: () => ({ showToast: vi.fn() }),
+}));
+
 afterEach(cleanup);
 
 const noop = async () => {};

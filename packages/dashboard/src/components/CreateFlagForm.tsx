@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import type { CreateFlagInput, Environment } from '../types';
 import FormInput from './FormInput';
 import type { InputStatus } from './FormInput';
+import { useToast } from './Toast';
 
 type CreateFlagFormProps = {
   onSubmit: (input: CreateFlagInput) => Promise<void>;
@@ -28,6 +29,7 @@ export default function CreateFlagForm({ onSubmit }: CreateFlagFormProps) {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const { showToast } = useToast();
   const [keyTouched, setKeyTouched] = useState(false);
   const [valueTouched, setValueTouched] = useState(false);
 
@@ -55,8 +57,11 @@ export default function CreateFlagForm({ onSubmit }: CreateFlagFormProps) {
       setDescription('');
       setKeyTouched(false);
       setValueTouched(false);
+      showToast(`Flag "${key}" created`, 'success');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create flag');
+      const msg = err instanceof Error ? err.message : 'Failed to create flag';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setSubmitting(false);
     }

@@ -24,6 +24,16 @@ function SkeletonRow() {
   );
 }
 
+function SkeletonCard() {
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="h-4 bg-gray-200 rounded animate-pulse mb-3 w-2/3" />
+      <div className="h-4 bg-gray-200 rounded animate-pulse mb-2 w-1/3" />
+      <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2" />
+    </div>
+  );
+}
+
 function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: () => void }) {
   return (
     <button
@@ -44,6 +54,57 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: () =>
   );
 }
 
+function TypeBadge({ type }: { type: string }) {
+  return (
+    <span
+      className={`text-xs px-2 py-0.5 rounded-full ${
+        type === 'build-time'
+          ? 'bg-amber-100 text-amber-800'
+          : 'bg-blue-100 text-blue-800'
+      }`}
+    >
+      {type}
+    </span>
+  );
+}
+
+function FlagCard({ flag, onToggle, onEdit, onDelete, onViewHistory }: {
+  flag: Flag;
+  onToggle: (flag: Flag, newValue: string) => void;
+  onEdit: (flag: Flag) => void;
+  onDelete: (flag: Flag) => void;
+  onViewHistory: (flagKey: string) => void;
+}) {
+  const isBool = flag.value === 'true' || flag.value === 'false';
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="flex items-start justify-between mb-2">
+        <span className="font-mono text-sm font-medium">{flag.key}</span>
+        <TypeBadge type={flag.type} />
+      </div>
+      <div className="flex items-center gap-2 mb-2 text-sm">
+        <span className="text-gray-500">Value:</span>
+        {isBool ? (
+          <ToggleSwitch
+            checked={flag.value === 'true'}
+            onChange={() => onToggle(flag, flag.value === 'true' ? 'false' : 'true')}
+          />
+        ) : (
+          <span>{flag.value}</span>
+        )}
+      </div>
+      <div className="text-xs text-gray-500 mb-3">
+        {flag.environment} &middot; {flag.updated_at}
+      </div>
+      <div className="flex gap-3">
+        <button onClick={() => onViewHistory(flag.key)} className="text-sm text-gray-600 hover:underline">History</button>
+        <button onClick={() => onEdit(flag)} className="text-sm text-blue-600 hover:underline">Edit</button>
+        <button onClick={() => onDelete(flag)} className="text-sm text-red-600 hover:underline">Delete</button>
+      </div>
+    </div>
+  );
+}
+
 export default function FlagTable({ flags, loading, error, onRetry, onToggle, onEdit, onDelete, onViewHistory }: FlagTableProps) {
   const [buildTimeWarning, setBuildTimeWarning] = useState<string | null>(null);
 
@@ -57,25 +118,34 @@ export default function FlagTable({ flags, loading, error, onRetry, onToggle, on
 
   if (loading) {
     return (
-      <div className="w-full bg-white rounded-lg border border-gray-200" aria-busy="true">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-200 text-left text-sm text-gray-600">
-              <th className="px-4 py-3">Key</th>
-              <th className="px-4 py-3">Value</th>
-              <th className="px-4 py-3">Type</th>
-              <th className="px-4 py-3">Environment</th>
-              <th className="px-4 py-3">Updated</th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <SkeletonRow />
-            <SkeletonRow />
-            <SkeletonRow />
-          </tbody>
-        </table>
-      </div>
+      <>
+        {/* Desktop skeleton */}
+        <div className="hidden sm:block w-full bg-white rounded-lg border border-gray-200" aria-busy="true">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200 text-left text-sm text-gray-600">
+                <th className="px-4 py-3">Key</th>
+                <th className="px-4 py-3">Value</th>
+                <th className="px-4 py-3">Type</th>
+                <th className="px-4 py-3">Environment</th>
+                <th className="px-4 py-3">Updated</th>
+                <th className="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <SkeletonRow />
+              <SkeletonRow />
+              <SkeletonRow />
+            </tbody>
+          </table>
+        </div>
+        {/* Mobile skeleton */}
+        <div className="sm:hidden space-y-3" aria-busy="true">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      </>
     );
   }
 
@@ -108,70 +178,78 @@ export default function FlagTable({ flags, loading, error, onRetry, onToggle, on
           ⚠ Build-time flag &ldquo;{buildTimeWarning}&rdquo; was updated. Changes will take effect after a rebuild.
         </div>
       )}
-    <table className="w-full bg-white rounded-lg border border-gray-200">
-      <thead>
-        <tr className="border-b border-gray-200 text-left text-sm text-gray-600">
-          <th className="px-4 py-3">Key</th>
-          <th className="px-4 py-3">Value</th>
-          <th className="px-4 py-3">Type</th>
-          <th className="px-4 py-3">Environment</th>
-          <th className="px-4 py-3">Updated</th>
-        </tr>
-      </thead>
-      <tbody>
-        {flags.map((flag) => {
-          const isBool = flag.value === 'true' || flag.value === 'false';
-          return (
-            <tr key={flag.key} className="border-b border-gray-100">
-              <td className="px-4 py-3 font-mono text-sm">{flag.key}</td>
-              <td className="px-4 py-3 text-sm">
-                {isBool ? (
-                  <ToggleSwitch
-                    checked={flag.value === 'true'}
-                    onChange={() => handleToggle(flag, flag.value === 'true' ? 'false' : 'true')}
-                  />
-                ) : (
-                  flag.value
-                )}
-              </td>
-              <td className="px-4 py-3">
-                <span
-                  className={`text-xs px-2 py-0.5 rounded-full ${
-                    flag.type === 'build-time'
-                      ? 'bg-amber-100 text-amber-800'
-                      : 'bg-blue-100 text-blue-800'
-                  }`}
-                >
-                  {flag.type}
-                </span>
-              </td>
-              <td className="px-4 py-3 text-sm">{flag.environment}</td>
-              <td className="px-4 py-3 text-sm text-gray-500">{flag.updated_at}</td>
-              <td className="px-4 py-3 text-right">
-                <button
-                  onClick={() => onViewHistory(flag.key)}
-                  className="text-sm text-gray-600 hover:underline"
-                >
-                  History
-                </button>
-                <button
-                  onClick={() => onEdit(flag)}
-                  className="text-sm text-blue-600 hover:underline ml-3"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => onDelete(flag)}
-                  className="text-sm text-red-600 hover:underline ml-3"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+
+      {/* Mobile card layout */}
+      <div className="sm:hidden space-y-3">
+        {flags.map((flag) => (
+          <FlagCard
+            key={flag.key}
+            flag={flag}
+            onToggle={handleToggle}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onViewHistory={onViewHistory}
+          />
+        ))}
+      </div>
+
+      {/* Desktop table layout */}
+      <table className="hidden sm:table w-full bg-white rounded-lg border border-gray-200">
+        <thead>
+          <tr className="border-b border-gray-200 text-left text-sm text-gray-600">
+            <th className="px-4 py-3">Key</th>
+            <th className="px-4 py-3">Value</th>
+            <th className="px-4 py-3">Type</th>
+            <th className="px-4 py-3">Environment</th>
+            <th className="px-4 py-3">Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          {flags.map((flag) => {
+            const isBool = flag.value === 'true' || flag.value === 'false';
+            return (
+              <tr key={flag.key} className="border-b border-gray-100">
+                <td className="px-4 py-3 font-mono text-sm">{flag.key}</td>
+                <td className="px-4 py-3 text-sm">
+                  {isBool ? (
+                    <ToggleSwitch
+                      checked={flag.value === 'true'}
+                      onChange={() => handleToggle(flag, flag.value === 'true' ? 'false' : 'true')}
+                    />
+                  ) : (
+                    flag.value
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  <TypeBadge type={flag.type} />
+                </td>
+                <td className="px-4 py-3 text-sm">{flag.environment}</td>
+                <td className="px-4 py-3 text-sm text-gray-500">{flag.updated_at}</td>
+                <td className="px-4 py-3 text-right">
+                  <button
+                    onClick={() => onViewHistory(flag.key)}
+                    className="text-sm text-gray-600 hover:underline"
+                  >
+                    History
+                  </button>
+                  <button
+                    onClick={() => onEdit(flag)}
+                    className="text-sm text-blue-600 hover:underline ml-3"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => onDelete(flag)}
+                    className="text-sm text-red-600 hover:underline ml-3"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

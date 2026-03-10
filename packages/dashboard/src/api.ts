@@ -2,7 +2,33 @@ import type { Flag, Environment, CreateFlagInput, UpdateFlagInput, AuditLogEntry
 
 export type { Flag, Environment, CreateFlagInput, UpdateFlagInput, AuditLogEntry };
 
-const BASE_URL = '/api';
+const SETTINGS_KEY = 'ff-dashboard-settings';
+
+export type DashboardSettings = {
+  apiUrl?: string;
+  apiToken?: string;
+};
+
+export function getSettings(): DashboardSettings {
+  try {
+    return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+export function saveSettings(settings: DashboardSettings): void {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+function getBaseUrl(): string {
+  const saved = getSettings().apiUrl;
+  if (saved) return saved;
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  return '/api';
+}
 
 export class ApiError extends Error {
   constructor(
@@ -18,10 +44,19 @@ async function request<T>(
   path: string,
   options?: RequestInit,
 ): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const baseUrl = getBaseUrl();
+  const settings = getSettings();
+  const fetchOptions: RequestInit = {
     credentials: 'include',
     ...options,
-  });
+  };
+  if (settings.apiToken) {
+    fetchOptions.headers = {
+      ...(options?.headers as Record<string, string> || {}),
+      Authorization: `Bearer ${settings.apiToken}`,
+    };
+  }
+  const res = await fetch(`${baseUrl}${path}`, fetchOptions);
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -42,7 +77,7 @@ async function authedRequest<T>(
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) {
       // Try refreshing the access token
-      const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
+      const refreshRes = await fetch(`${getBaseUrl()}/auth/refresh`, {
         method: 'POST',
         credentials: 'include',
       });

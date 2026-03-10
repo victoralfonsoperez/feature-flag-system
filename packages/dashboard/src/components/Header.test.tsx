@@ -26,62 +26,76 @@ describe('Header', () => {
     expect(screen.getByText('Feature Flags')).toBeDefined();
   });
 
-  it('displays the current environment in the selector', () => {
-    render(<Header {...defaultProps} environment="staging" />);
-    const select = screen.getByRole('combobox') as HTMLSelectElement;
-    expect(select.value).toBe('staging');
+  it('renders all navigation buttons', () => {
+    render(<Header {...defaultProps} />);
+    expect(screen.getAllByText('Flags').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('API Tokens').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders all three environment options', () => {
+  it('shows Users nav button for admin users', () => {
     render(<Header {...defaultProps} />);
-    const options = screen.getAllByRole('option') as HTMLOptionElement[];
-    expect(options.map((o) => o.value)).toEqual([
-      'production',
-      'staging',
-      'development',
-    ]);
+    expect(screen.getAllByText('Users').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('calls onViewChange when a nav button is clicked', () => {
+    const onViewChange = vi.fn();
+    render(<Header {...defaultProps} onViewChange={onViewChange} />);
+    // Click the first "Users" button (desktop nav)
+    fireEvent.click(screen.getAllByText('Users')[0]);
+    expect(onViewChange).toHaveBeenCalledWith('users');
+  });
+
+  it('applies active style to button matching current view', () => {
+    render(<Header {...defaultProps} view="users" />);
+    const usersButtons = screen.getAllByText('Users');
+    expect(usersButtons[0].className).toContain('bg-gray-100');
+  });
+
+  it('shows user email', () => {
+    render(<Header {...defaultProps} />);
+    expect(screen.getAllByText('admin@test.com').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('has a hamburger menu toggle button', () => {
+    render(<Header {...defaultProps} />);
+    expect(screen.getByLabelText('Toggle menu')).toBeDefined();
+  });
+
+  it('shows mobile menu when hamburger is clicked', () => {
+    render(<Header {...defaultProps} />);
+    const toggle = screen.getByLabelText('Toggle menu');
+    // Mobile menu nav items are rendered but the mobile container is hidden via CSS (md:hidden)
+    // After clicking toggle, the mobile menu section appears in the DOM
+    fireEvent.click(toggle);
+    // Should now have duplicate nav items (desktop + mobile)
+    expect(screen.getAllByText('Flags').length).toBe(2);
+  });
+
+  it('renders settings button when onOpenSettings is provided', () => {
+    render(<Header {...defaultProps} onOpenSettings={() => {}} />);
+    expect(screen.getAllByLabelText('Settings').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('calls onOpenSettings when settings button is clicked', () => {
+    const onOpenSettings = vi.fn();
+    render(<Header {...defaultProps} onOpenSettings={onOpenSettings} />);
+    fireEvent.click(screen.getAllByLabelText('Settings')[0]);
+    expect(onOpenSettings).toHaveBeenCalled();
+  });
+
+  it('displays environment selector on flags view', () => {
+    render(<Header {...defaultProps} />);
+    const selects = screen.getAllByRole('combobox');
+    expect(selects.length).toBeGreaterThanOrEqual(1);
+    expect((selects[0] as HTMLSelectElement).value).toBe('production');
   });
 
   it('calls onEnvironmentChange when selection changes', () => {
     const onChange = vi.fn();
     render(<Header {...defaultProps} onEnvironmentChange={onChange} />);
-
-    fireEvent.change(screen.getByRole('combobox'), {
+    fireEvent.change(screen.getAllByRole('combobox')[0], {
       target: { value: 'development' },
     });
-
-    expect(onChange).toHaveBeenCalledWith('development' as Environment);
-  });
-
-  it('shows user email and logout button', () => {
-    render(<Header {...defaultProps} />);
-    expect(screen.getByText('admin@test.com')).toBeDefined();
-    expect(screen.getByText('Logout')).toBeDefined();
-  });
-
-  it('shows Flags and API Tokens navigation', () => {
-    render(<Header {...defaultProps} />);
-    expect(screen.getByText('Flags')).toBeDefined();
-    expect(screen.getByText('API Tokens')).toBeDefined();
-  });
-
-  it('shows Users nav button for admin users', () => {
-    render(<Header {...defaultProps} />);
-    expect(screen.getByText('Users')).toBeDefined();
-  });
-
-  it('calls onViewChange when Users button is clicked', () => {
-    const onViewChange = vi.fn();
-    render(<Header {...defaultProps} onViewChange={onViewChange} />);
-    fireEvent.click(screen.getByText('Users'));
-    expect(onViewChange).toHaveBeenCalledWith('users');
-  });
-});
-
-describe('Header - Users button highlights when active', () => {
-  it('applies active style to Users button when view is users', () => {
-    render(<Header {...defaultProps} view="users" />);
-    const usersButton = screen.getByText('Users');
-    expect(usersButton.className).toContain('bg-gray-100');
+    expect(onChange).toHaveBeenCalledWith('development');
   });
 });

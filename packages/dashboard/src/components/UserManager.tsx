@@ -6,6 +6,7 @@ import { useAuth } from '../auth/AuthContext';
 import FormInput from './FormInput';
 import type { InputStatus } from './FormInput';
 import { validateEmail, validatePassword } from '../utils/validation';
+import { useToast } from './Toast';
 
 export default function UserManager() {
   const { user: currentUser } = useAuth();
@@ -16,6 +17,7 @@ export default function UserManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const { showToast } = useToast();
   const [emailTouched, setEmailTouched] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
 
@@ -66,8 +68,11 @@ export default function UserManager() {
       setEmailTouched(false);
       setPasswordTouched(false);
       await loadUsers();
+      showToast('User created', 'success');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create user');
+      const msg = err instanceof Error ? err.message : 'Failed to create user';
+      setError(msg);
+      showToast(msg, 'error');
     }
   }
 
@@ -76,8 +81,11 @@ export default function UserManager() {
     try {
       await deleteUser(id);
       setUsers((prev) => prev.filter((u) => u.id !== id));
+      showToast('User deleted', 'success');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete user');
+      const msg = err instanceof Error ? err.message : 'Failed to delete user';
+      setError(msg);
+      showToast(msg, 'error');
     }
   }
 
