@@ -173,8 +173,8 @@ Add variant assignment and the plumbing needed for experiments.
 - [x] Add tests for deterministic assignment and default fallback without `user_id`
 
 #### Variant hardening
-- [ ] Add tests for distribution uniformity (e.g. 10k user IDs, assert variant distribution matches weights within tolerance)
-- [ ] Extend `/resolve` response to include variant metadata (variant name, experiment flag key)
+- [x] Add tests for distribution uniformity (e.g. 10k user IDs, assert variant distribution matches weights within tolerance)
+- [x] Extend `/resolve` response to include variant metadata (variant name, experiment flag key)
 
 #### Variant management UI (dashboard)
 - [ ] Add variant editor section to `EditFlagModal` — add/remove/reorder variants with name, value, and weight fields
