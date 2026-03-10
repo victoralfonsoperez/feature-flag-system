@@ -139,6 +139,20 @@ Ship the React SDK for runtime flags.
 |---|---|---|
 | 6 | ~7h | Finalize `FlagProvider`, `useFlags()`, and `useFlag(key)` APIs, add configurable caching (sessionStorage with TTL), define sensible defaults/fallback behavior when service is unreachable, write unit tests, publish package or document local linking |
 
+### Phase 4 — Task Checklist
+
+#### SDK core (done)
+- [x] Implement `FlagProvider` component that fetches flags from the API on mount
+- [x] Implement `useFlags()` hook returning all resolved flags
+- [x] Implement `useFlag(key, fallback)` hook returning a single flag value
+- [x] Define sensible defaults/fallback behavior when service is unreachable (use `defaults` prop)
+- [x] Write unit tests for hooks and fallback behavior
+
+#### SDK caching
+- [ ] Add configurable caching with `sessionStorage` and TTL (e.g. `cacheTtl` prop on `FlagProvider`)
+- [ ] On mount, check `sessionStorage` for cached flags within TTL — use cached values immediately while re-fetching in the background
+- [ ] Write tests for cache hit, cache miss, and cache expiration scenarios
+
 **Milestone:** Any React app can consume runtime flags via the SDK.
 
 ## Phase 5 — A/B Testing (Weeks 7–8)
@@ -149,6 +163,31 @@ Add variant assignment and the plumbing needed for experiments.
 |---|---|---|
 | 7 | ~8h | Harden the hash-based variant assignment (add tests for distribution uniformity), extend `/resolve` endpoint to return variant metadata (name, experiment ID), add variant management UI in the dashboard (create/edit variants with weights) |
 | 8 | ~5h | Add analytics event hook in the SDK (`onVariantAssigned` callback), document how to integrate with an analytics provider, write integration test: SDK → API → correct variant returned |
+
+### Phase 5 — Task Checklist
+
+#### Backend variant resolution (done)
+- [x] Implement deterministic hash-based variant assignment using `user_id`
+- [x] Store variants as JSON on the flag (name, value, weight)
+- [x] Return variant value from `/resolve` endpoint when `user_id` is provided
+- [x] Add tests for deterministic assignment and default fallback without `user_id`
+
+#### Variant hardening
+- [ ] Add tests for distribution uniformity (e.g. 10k user IDs, assert variant distribution matches weights within tolerance)
+- [ ] Extend `/resolve` response to include variant metadata (variant name, experiment flag key)
+
+#### Variant management UI (dashboard)
+- [ ] Add variant editor section to `EditFlagModal` — add/remove/reorder variants with name, value, and weight fields
+- [ ] Show variant data in `CreateFlagForm` when the user wants to create a flag with variants
+- [ ] Display variant info in `FlagTable` (e.g. badge or indicator showing "3 variants")
+- [ ] Validate that variant weights are positive integers and total weight is > 0
+- [ ] Write tests for variant editor UI
+
+#### SDK analytics hook
+- [ ] Add `onVariantAssigned(flagKey, variantName, userId)` callback prop to `FlagProvider`
+- [ ] Fire callback when a flag with variants is resolved for a user
+- [ ] Document how to integrate with analytics providers (GA, Mixpanel, Amplitude)
+- [ ] Write integration test: SDK → API → correct variant returned and callback fired
 
 **Milestone:** Full A/B testing flow works end-to-end with deterministic bucketing.
 
@@ -161,6 +200,27 @@ Make it reliable enough to run in production.
 | 9 | ~8h | Add rate limiting to the `/resolve` endpoint, add request logging and structured error responses, set up health check endpoint (`GET /health`), write a `docker-compose.yml` for local full-stack development (API + dashboard) |
 | 10 | ~6h | Deploy to hosting (Fly.io, Railway, or VPS), configure HTTPS and environment-specific secrets, end-to-end smoke test in a real environment, write deployment documentation |
 
+### Phase 6 — Task Checklist
+
+#### Rate limiting (done)
+- [x] Add global rate limiting (100 req/min)
+- [x] Add stricter rate limiting on login endpoint (10 req/min)
+
+#### Observability & reliability
+- [ ] Add `GET /health` endpoint returning `{ status: "ok", uptime, version }` for load balancer probes
+- [ ] Add structured request logging (method, path, status, duration) — consider `pino` (already a Fastify default)
+- [ ] Write tests for the health endpoint
+
+#### Local development
+- [ ] Write `docker-compose.yml` at repo root — API + dashboard + volume for SQLite persistence
+- [ ] Document `docker compose up` workflow in README
+
+#### Deployment
+- [ ] Deploy API to hosting provider (Fly.io, Railway, or VPS)
+- [ ] Configure HTTPS and environment-specific secrets (`JWT_SECRET`, `GITHUB_PAT`)
+- [ ] Run end-to-end smoke test in the deployed environment
+- [ ] Write deployment documentation (`docs/DEPLOYMENT.md`) covering setup, env vars, and troubleshooting
+
 **Milestone:** System is deployed and serving real traffic.
 
 ## Phase 7 — Polish & Extras (Weeks 11–12)
@@ -171,6 +231,30 @@ Nice-to-haves that improve the day-to-day experience.
 |---|---|---|
 | 11 | ~6h | Add "revert to previous value" button in dashboard (reads audit log), add Slack/Discord webhook notification on flag changes, add flag search/filter in dashboard |
 | 12 | ~5h | Add multi-app support (scope flags by `app_id`), write project documentation and usage guide, tag `v1.0.0` release |
+
+### Phase 7 — Task Checklist
+
+#### Dashboard improvements
+- [ ] Add flag search/filter input above the flag table (filter by key, description, or type)
+- [ ] Add "Revert to previous value" button on each flag row (reads last value from audit log, calls PUT)
+- [ ] Write tests for search/filter and revert functionality
+
+#### Notifications
+- [ ] Add Slack/Discord webhook notification on flag changes (configurable webhook URL via env var or settings)
+- [ ] Fire notification on create, update, and delete with flag key, action, and actor
+- [ ] Write tests for webhook dispatch
+
+#### Multi-app support
+- [ ] Add `app_id` column to flags table and update schema
+- [ ] Scope all flag CRUD and resolve endpoints by `app_id` query parameter
+- [ ] Add app selector in the dashboard UI
+- [ ] Update SDK `FlagProvider` to accept an `appId` prop
+- [ ] Write migration and tests for multi-app scoping
+
+#### Release
+- [ ] Write project documentation and usage guide (`docs/USAGE.md` — update existing)
+- [ ] Review and update README with final architecture and setup instructions
+- [ ] Tag `v1.0.0` release
 
 **Milestone:** v1.0 shipped.
 
