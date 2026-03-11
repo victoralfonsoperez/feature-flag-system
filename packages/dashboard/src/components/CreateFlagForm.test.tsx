@@ -147,6 +147,63 @@ describe('CreateFlagForm', () => {
     expect(screen.queryByText(/Build-time flags require a rebuild/)).toBeNull();
   });
 
+  it('shows variant editor when Add variants checkbox is checked', () => {
+    render(<CreateFlagForm onSubmit={noop} />);
+    fireEvent.click(screen.getByLabelText('Add variants'));
+    expect(screen.getByText('+ Add Variant')).toBeDefined();
+  });
+
+  it('hides variant editor when checkbox is unchecked', () => {
+    render(<CreateFlagForm onSubmit={noop} />);
+    fireEvent.click(screen.getByLabelText('Add variants'));
+    expect(screen.getByText('+ Add Variant')).toBeDefined();
+    fireEvent.click(screen.getByLabelText('Add variants'));
+    expect(screen.queryByText('+ Add Variant')).toBeNull();
+  });
+
+  it('includes variants in submission when enabled', async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<CreateFlagForm onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText('Key'), { target: { value: 'ab-test' } });
+    fireEvent.change(screen.getByLabelText('Value'), { target: { value: 'true' } });
+    fireEvent.click(screen.getByLabelText('Add variants'));
+    fireEvent.click(screen.getByText('+ Add Variant'));
+    fireEvent.change(screen.getByLabelText('Variant 1 name'), { target: { value: 'a' } });
+    fireEvent.change(screen.getByLabelText('Variant 1 value'), { target: { value: 'x' } });
+    fireEvent.change(screen.getByLabelText('Variant 1 weight'), { target: { value: '100' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Flag' }));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({
+        key: 'ab-test',
+        value: 'true',
+        type: 'runtime',
+        environment: 'production',
+        description: undefined,
+        variants: JSON.stringify([{ name: 'a', value: 'x', weight: 100 }]),
+      });
+    });
+  });
+
+  it('shows variant validation error for invalid weights', async () => {
+    const onSubmit = vi.fn();
+    render(<CreateFlagForm onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByLabelText('Key'), { target: { value: 'ab-test' } });
+    fireEvent.change(screen.getByLabelText('Value'), { target: { value: 'true' } });
+    fireEvent.click(screen.getByLabelText('Add variants'));
+    fireEvent.click(screen.getByText('+ Add Variant'));
+    // weight defaults to 0, which is invalid
+    fireEvent.change(screen.getByLabelText('Variant 1 name'), { target: { value: 'a' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Flag' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('All variant weights must be positive integers')).toBeDefined();
+    });
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it('omits description when empty', async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(<CreateFlagForm onSubmit={onSubmit} />);

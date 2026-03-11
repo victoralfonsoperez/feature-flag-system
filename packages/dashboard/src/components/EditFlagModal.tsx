@@ -1,8 +1,29 @@
 import { useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
-import type { Flag, UpdateFlagInput } from '../types';
+import type { Flag, UpdateFlagInput, Variant } from '../types';
 import FormInput from './FormInput';
 import type { InputStatus } from './FormInput';
+import VariantEditor from './VariantEditor';
+
+function parseVariants(raw: string | null): Variant[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function validateVariants(variants: Variant[]): string | undefined {
+  if (variants.length === 0) return undefined;
+  for (const v of variants) {
+    if (v.weight < 1 || !Number.isInteger(v.weight)) {
+      return 'All variant weights must be positive integers';
+    }
+  }
+  return undefined;
+}
 
 type EditFlagModalProps = {
   flag: Flag;
@@ -13,6 +34,8 @@ type EditFlagModalProps = {
 export default function EditFlagModal({ flag, onSave, onClose }: EditFlagModalProps) {
   const [value, setValue] = useState(flag.value);
   const [description, setDescription] = useState(flag.description);
+  const [variants, setVariants] = useState<Variant[]>(() => parseVariants(flag.variants));
+  const [variantError, setVariantError] = useState<string | undefined>();
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -34,11 +57,19 @@ export default function EditFlagModal({ flag, onSave, onClose }: EditFlagModalPr
 
     if (!value) return;
 
+    const vErr = validateVariants(variants);
+    if (vErr) {
+      setVariantError(vErr);
+      return;
+    }
+    setVariantError(undefined);
+
     setSaving(true);
     try {
       await onSave(flag.key, {
         value,
         description: description || undefined,
+        variants: variants.length > 0 ? JSON.stringify(variants) : undefined,
       });
       onClose();
     } catch (err) {
@@ -105,6 +136,8 @@ export default function EditFlagModal({ flag, onSave, onClose }: EditFlagModalPr
               className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
+
+          <VariantEditor variants={variants} onChange={setVariants} errors={variantError} />
 
           {error && <p className="text-sm text-red-400">{error}</p>}
 

@@ -144,6 +144,62 @@ describe('EditFlagModal', () => {
     expect(screen.queryByText(/This is a build-time flag/)).toBeNull();
   });
 
+  it('renders variant editor with parsed variants', () => {
+    const flagWithVariants: Flag = {
+      ...mockFlag,
+      variants: JSON.stringify([
+        { name: 'control', value: 'off', weight: 50 },
+        { name: 'treatment', value: 'on', weight: 50 },
+      ]),
+    };
+    render(<EditFlagModal flag={flagWithVariants} onSave={noop} onClose={noop} />);
+    expect((screen.getByLabelText('Variant 1 name') as HTMLInputElement).value).toBe('control');
+    expect((screen.getByLabelText('Variant 2 name') as HTMLInputElement).value).toBe('treatment');
+  });
+
+  it('includes variants in save payload', async () => {
+    const flagWithVariants: Flag = {
+      ...mockFlag,
+      variants: JSON.stringify([{ name: 'a', value: 'x', weight: 100 }]),
+    };
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<EditFlagModal flag={flagWithVariants} onSave={onSave} onClose={noop} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalledWith('dark-mode', {
+        value: 'true',
+        description: 'Enable dark mode',
+        variants: JSON.stringify([{ name: 'a', value: 'x', weight: 100 }]),
+      });
+    });
+  });
+
+  it('shows variant validation error for zero weight', async () => {
+    const flagWithVariants: Flag = {
+      ...mockFlag,
+      variants: JSON.stringify([{ name: 'a', value: 'x', weight: 0 }]),
+    };
+    const onSave = vi.fn();
+    render(<EditFlagModal flag={flagWithVariants} onSave={onSave} onClose={noop} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => {
+      expect(screen.getByText('All variant weights must be positive integers')).toBeDefined();
+    });
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('omits variants when all removed', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<EditFlagModal flag={mockFlag} onSave={onSave} onClose={noop} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalledWith('dark-mode', {
+        value: 'true',
+        description: 'Enable dark mode',
+      });
+    });
+  });
+
   it('omits description when cleared', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<EditFlagModal flag={mockFlag} onSave={onSave} onClose={noop} />);
