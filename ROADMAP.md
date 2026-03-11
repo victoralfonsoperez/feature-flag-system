@@ -177,11 +177,11 @@ Add variant assignment and the plumbing needed for experiments.
 - [x] Extend `/resolve` response to include variant metadata (variant name, experiment flag key)
 
 #### Variant management UI (dashboard)
-- [ ] Add variant editor section to `EditFlagModal` — add/remove/reorder variants with name, value, and weight fields
-- [ ] Show variant data in `CreateFlagForm` when the user wants to create a flag with variants
-- [ ] Display variant info in `FlagTable` (e.g. badge or indicator showing "3 variants")
-- [ ] Validate that variant weights are positive integers and total weight is > 0
-- [ ] Write tests for variant editor UI
+- [x] Add variant editor section to `EditFlagModal` — add/remove/reorder variants with name, value, and weight fields
+- [x] Show variant data in `CreateFlagForm` when the user wants to create a flag with variants
+- [x] Display variant info in `FlagTable` (e.g. badge or indicator showing "3 variants")
+- [x] Validate that variant weights are positive integers and total weight is > 0
+- [x] Write tests for variant editor UI
 
 #### SDK analytics hook
 - [ ] Add `onVariantAssigned(flagKey, variantName, userId)` callback prop to `FlagProvider`
