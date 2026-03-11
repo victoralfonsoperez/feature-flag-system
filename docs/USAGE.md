@@ -90,6 +90,8 @@ function App() {
 | `environment` | `string` | No | `'production'` | Environment to resolve flags for (`development`, `staging`, `production`) |
 | `userId` | `string` | No | — | User identifier for A/B test variant bucketing |
 | `defaults` | `Record<string, string>` | No | `{}` | Fallback values used before flags load or if the API is unreachable |
+| `cacheTtl` | `number` | No | `0` | Cache TTL in seconds. Set to `0` to disable caching. |
+| `onVariantAssigned` | `(flagKey, variantName, userId) => void` | No | — | Called when a flag with variants is resolved for a user. Use for analytics tracking. |
 | `children` | `ReactNode` | Yes | — | Your application tree |
 
 The provider renders nothing (`null`) until flags are loaded, then renders children with flag values available via context.
@@ -467,6 +469,92 @@ The system uses a deterministic hash to assign users to variants:
 - The bucket is the hash modulo the total weight across all variants
 - The same user ID always maps to the same variant (deterministic)
 - Adjust weights to control traffic distribution
+
+## Analytics Integration
+
+The SDK provides an `onVariantAssigned` callback that fires when a flag with variants is resolved for a user. Use this to send experiment exposure events to your analytics provider.
+
+### Setup
+
+```tsx
+<FlagProvider
+  serviceUrl="https://flags.example.com"
+  userId={currentUser.id}
+  onVariantAssigned={(flagKey, variantName, userId) => {
+    console.log(`User ${userId} assigned to variant "${variantName}" for flag "${flagKey}"`);
+  }}
+>
+  <App />
+</FlagProvider>
+```
+
+The callback is called once per variant flag after flags are fetched from the API. It receives three arguments:
+
+| Argument | Type | Description |
+|---|---|---|
+| `flagKey` | `string` | The flag key (e.g., `hero_variant`) |
+| `variantName` | `string` | The assigned variant name (e.g., `big_cta`) |
+| `userId` | `string` | The user ID passed to `FlagProvider` |
+
+### Google Analytics (GA4)
+
+```tsx
+<FlagProvider
+  serviceUrl="https://flags.example.com"
+  userId={currentUser.id}
+  onVariantAssigned={(flagKey, variantName, userId) => {
+    gtag('event', 'experiment_exposure', {
+      experiment_id: flagKey,
+      variant_id: variantName,
+      user_id: userId,
+    });
+  }}
+>
+  <App />
+</FlagProvider>
+```
+
+### Mixpanel
+
+```tsx
+<FlagProvider
+  serviceUrl="https://flags.example.com"
+  userId={currentUser.id}
+  onVariantAssigned={(flagKey, variantName, userId) => {
+    mixpanel.track('Experiment Exposure', {
+      experiment: flagKey,
+      variant: variantName,
+      distinct_id: userId,
+    });
+  }}
+>
+  <App />
+</FlagProvider>
+```
+
+### Amplitude
+
+```tsx
+<FlagProvider
+  serviceUrl="https://flags.example.com"
+  userId={currentUser.id}
+  onVariantAssigned={(flagKey, variantName, userId) => {
+    amplitude.track('Experiment Exposure', {
+      experiment_key: flagKey,
+      variant_name: variantName,
+      user_id: userId,
+    });
+  }}
+>
+  <App />
+</FlagProvider>
+```
+
+### Notes
+
+- The callback only fires when `userId` is set and the API response includes variant metadata.
+- It fires once per resolved variant flag per fetch cycle (on mount and on cache revalidation).
+- If the API is unreachable and cached/default values are used, the callback is **not** fired (no variant resolution occurred).
 
 ## Troubleshooting
 

@@ -184,10 +184,10 @@ Add variant assignment and the plumbing needed for experiments.
 - [x] Write tests for variant editor UI
 
 #### SDK analytics hook
-- [ ] Add `onVariantAssigned(flagKey, variantName, userId)` callback prop to `FlagProvider`
-- [ ] Fire callback when a flag with variants is resolved for a user
-- [ ] Document how to integrate with analytics providers (GA, Mixpanel, Amplitude)
-- [ ] Write integration test: SDK → API → correct variant returned and callback fired
+- [x] Add `onVariantAssigned(flagKey, variantName, userId)` callback prop to `FlagProvider`
+- [x] Fire callback when a flag with variants is resolved for a user
+- [x] Document how to integrate with analytics providers (GA, Mixpanel, Amplitude)
+- [x] Write integration test: SDK → API → correct variant returned and callback fired
 
 **Milestone:** Full A/B testing flow works end-to-end with deterministic bucketing.
 
