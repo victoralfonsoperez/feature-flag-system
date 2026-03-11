@@ -2,6 +2,8 @@ import { createContext, useEffect, useState, type ReactNode } from 'react';
 
 export type FlagValues = Record<string, string>;
 
+export type OnVariantAssigned = (flagKey: string, variantName: string, userId: string) => void;
+
 export interface FlagProviderProps {
   serviceUrl: string;
   environment?: string;
@@ -9,6 +11,8 @@ export interface FlagProviderProps {
   defaults?: FlagValues;
   /** Cache TTL in seconds. Set to 0 to disable caching. Default: 0 (disabled). */
   cacheTtl?: number;
+  /** Called when a flag with variants is resolved for a user. */
+  onVariantAssigned?: OnVariantAssigned;
   children: ReactNode;
 }
 
@@ -54,6 +58,7 @@ export function FlagProvider({
   userId,
   defaults = {},
   cacheTtl = 0,
+  onVariantAssigned,
   children,
 }: FlagProviderProps) {
   const cacheKey = buildCacheKey(serviceUrl, environment, userId);
@@ -71,11 +76,23 @@ export function FlagProvider({
 
     fetch(`${serviceUrl}/api/flags/resolve?${params}`)
       .then((res) => res.json())
-      .then((data: FlagValues) => {
-        const merged = { ...defaults, ...data };
+      .then((data: Record<string, unknown>) => {
+        const variantsMeta = data._variants as Record<string, { variant: string; flagKey: string }> | undefined;
+        const flagValues: FlagValues = {};
+        for (const [k, v] of Object.entries(data)) {
+          if (k !== '_variants') flagValues[k] = v as string;
+        }
+
+        const merged = { ...defaults, ...flagValues };
         setFlags(merged);
         setReady(true);
-        if (cacheTtl > 0) writeCache(cacheKey, data);
+        if (cacheTtl > 0) writeCache(cacheKey, flagValues);
+
+        if (onVariantAssigned && userId && variantsMeta) {
+          for (const [flagKey, meta] of Object.entries(variantsMeta)) {
+            onVariantAssigned(flagKey, meta.variant, userId);
+          }
+        }
       })
       .catch(() => {
         if (!cached) {

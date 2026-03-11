@@ -217,6 +217,116 @@ describe('FlagProvider caching', () => {
     );
   });
 
+  it('fires onVariantAssigned for each variant when userId is set', async () => {
+    const onVariantAssigned = vi.fn();
+    mockFetch.mockReturnValue(jsonResponse({
+      button_color: 'blue',
+      _variants: {
+        button_color: { variant: 'blue-variant', flagKey: 'button_color' },
+      },
+    }));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          userId: 'user-42',
+          onVariantAssigned,
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    expect(onVariantAssigned).toHaveBeenCalledOnce();
+    expect(onVariantAssigned).toHaveBeenCalledWith('button_color', 'blue-variant', 'user-42');
+  });
+
+  it('fires onVariantAssigned for multiple variants', async () => {
+    const onVariantAssigned = vi.fn();
+    mockFetch.mockReturnValue(jsonResponse({
+      button_color: 'blue',
+      header_text: 'Welcome!',
+      _variants: {
+        button_color: { variant: 'blue-variant', flagKey: 'button_color' },
+        header_text: { variant: 'greeting-a', flagKey: 'header_text' },
+      },
+    }));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          userId: 'user-42',
+          onVariantAssigned,
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    expect(onVariantAssigned).toHaveBeenCalledTimes(2);
+    expect(onVariantAssigned).toHaveBeenCalledWith('button_color', 'blue-variant', 'user-42');
+    expect(onVariantAssigned).toHaveBeenCalledWith('header_text', 'greeting-a', 'user-42');
+  });
+
+  it('does not fire onVariantAssigned when no variants in response', async () => {
+    const onVariantAssigned = vi.fn();
+    mockFetch.mockReturnValue(jsonResponse({
+      dark_mode: 'true',
+      _variants: {},
+    }));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          userId: 'user-42',
+          onVariantAssigned,
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    expect(onVariantAssigned).not.toHaveBeenCalled();
+  });
+
+  it('does not fire onVariantAssigned when userId is not set', async () => {
+    const onVariantAssigned = vi.fn();
+    mockFetch.mockReturnValue(jsonResponse({
+      dark_mode: 'true',
+      _variants: {},
+    }));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          onVariantAssigned,
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    expect(onVariantAssigned).not.toHaveBeenCalled();
+  });
+
+  it('does not include _variants key in resolved flags', async () => {
+    mockFetch.mockReturnValue(jsonResponse({
+      button_color: 'blue',
+      _variants: {
+        button_color: { variant: 'blue-variant', flagKey: 'button_color' },
+      },
+    }));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          userId: 'user-42',
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    expect(screen.getByTestId('flags').textContent).toBe(
+      JSON.stringify({ button_color: 'blue' }),
+    );
+  });
+
   it('keeps cached values on fetch error when cache exists', async () => {
     const cacheKey = 'ff-sdk-cache:http://localhost:3100:production';
     sessionStorage.setItem(cacheKey, JSON.stringify({
