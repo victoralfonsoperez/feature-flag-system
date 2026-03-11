@@ -153,6 +153,40 @@ describe('FlagTable', () => {
     expect(onDelete).toHaveBeenCalledWith(mockFlags[0]);
   });
 
+  it('shows variant badge when flag has variants', () => {
+    const flagsWithVariants: Flag[] = [
+      {
+        ...mockFlags[0],
+        variants: JSON.stringify([
+          { name: 'a', value: 'x', weight: 50 },
+          { name: 'b', value: 'y', weight: 50 },
+          { name: 'c', value: 'z', weight: 50 },
+        ]),
+      },
+    ];
+    render(<FlagTable {...defaultProps} flags={flagsWithVariants} />);
+    // Mobile + desktop = 2 badges
+    const badges = screen.getAllByText('3 variants');
+    expect(badges.length).toBe(2);
+  });
+
+  it('shows singular variant badge for one variant', () => {
+    const flagsWithOneVariant: Flag[] = [
+      {
+        ...mockFlags[0],
+        variants: JSON.stringify([{ name: 'a', value: 'x', weight: 100 }]),
+      },
+    ];
+    render(<FlagTable {...defaultProps} flags={flagsWithOneVariant} />);
+    const badges = screen.getAllByText('1 variant');
+    expect(badges.length).toBe(2);
+  });
+
+  it('does not show variant badge when variants is null', () => {
+    render(<FlagTable {...defaultProps} />);
+    expect(screen.queryByText(/variant/)).toBeNull();
+  });
+
   describe('build-time toggle warning', () => {
     const buildTimeBoolFlag: Flag = {
       key: 'enable-ssr',

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import type { CreateFlagInput, Environment } from '../types';
+import type { CreateFlagInput, Environment, Variant } from '../types';
 import FormInput from './FormInput';
 import type { InputStatus } from './FormInput';
 import { useToast } from './Toast';
+import VariantEditor from './VariantEditor';
 
 type CreateFlagFormProps = {
   onSubmit: (input: CreateFlagInput) => Promise<void>;
@@ -26,6 +27,9 @@ export default function CreateFlagForm({ onSubmit }: CreateFlagFormProps) {
   const [type, setType] = useState<CreateFlagInput['type']>('runtime');
   const [environment, setEnvironment] = useState<Environment>('production');
   const [description, setDescription] = useState('');
+  const [showVariants, setShowVariants] = useState(false);
+  const [variants, setVariants] = useState<Variant[]>([]);
+  const [variantError, setVariantError] = useState<string | undefined>();
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -47,14 +51,29 @@ export default function CreateFlagForm({ onSubmit }: CreateFlagFormProps) {
 
     if (!keyValidation.valid || !value) return;
 
+    if (showVariants && variants.length > 0) {
+      const hasInvalid = variants.some(v => v.weight < 1 || !Number.isInteger(v.weight));
+      if (hasInvalid) {
+        setVariantError('All variant weights must be positive integers');
+        return;
+      }
+    }
+    setVariantError(undefined);
+
     setSubmitting(true);
     try {
-      await onSubmit({ key, value, type, environment, description: description || undefined });
+      const variantsPayload = showVariants && variants.length > 0
+        ? JSON.stringify(variants)
+        : undefined;
+      await onSubmit({ key, value, type, environment, description: description || undefined, variants: variantsPayload });
       setKey('');
       setValue('');
       setType('runtime');
       setEnvironment('production');
       setDescription('');
+      setShowVariants(false);
+      setVariants([]);
+      setVariantError(undefined);
       setKeyTouched(false);
       setValueTouched(false);
       showToast(`Flag "${key}" created`, 'success');
@@ -151,6 +170,30 @@ export default function CreateFlagForm({ onSubmit }: CreateFlagFormProps) {
           className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
       </div>
+
+      <div className="mb-3">
+        <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showVariants}
+            onChange={(e) => {
+              setShowVariants(e.target.checked);
+              if (!e.target.checked) {
+                setVariants([]);
+                setVariantError(undefined);
+              }
+            }}
+            className="rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500"
+          />
+          Add variants
+        </label>
+      </div>
+
+      {showVariants && (
+        <div className="mb-3">
+          <VariantEditor variants={variants} onChange={setVariants} errors={variantError} />
+        </div>
+      )}
 
       {error && <p className="text-sm text-red-400 mb-3">{error}</p>}
 

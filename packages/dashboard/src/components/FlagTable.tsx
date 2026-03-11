@@ -54,6 +54,21 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: () =>
   );
 }
 
+function VariantBadge({ variants }: { variants: string | null }) {
+  if (!variants) return null;
+  try {
+    const parsed = JSON.parse(variants);
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+    return (
+      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-900/40 text-blue-300">
+        {parsed.length} variant{parsed.length !== 1 ? 's' : ''}
+      </span>
+    );
+  } catch {
+    return null;
+  }
+}
+
 function TypeBadge({ type }: { type: string }) {
   return (
     <span
@@ -80,7 +95,10 @@ function FlagCard({ flag, onToggle, onEdit, onDelete, onViewHistory }: {
     <div className="bg-gray-900 rounded-lg border border-gray-700 p-4">
       <div className="flex items-start justify-between mb-2">
         <span className="font-mono text-sm font-medium text-gray-100">{flag.key}</span>
-        <TypeBadge type={flag.type} />
+        <div className="flex items-center gap-1.5">
+          <VariantBadge variants={flag.variants} />
+          <TypeBadge type={flag.type} />
+        </div>
       </div>
       <div className="flex items-center gap-2 mb-2 text-sm">
         <span className="text-gray-400">Value:</span>
@@ -221,7 +239,10 @@ export default function FlagTable({ flags, loading, error, onRetry, onToggle, on
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  <TypeBadge type={flag.type} />
+                  <div className="flex items-center gap-1.5">
+                    <TypeBadge type={flag.type} />
+                    <VariantBadge variants={flag.variants} />
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-300">{flag.environment}</td>
                 <td className="px-4 py-3 text-sm text-gray-400">{flag.updated_at}</td>

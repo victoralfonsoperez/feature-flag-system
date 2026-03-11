@@ -1,3 +1,5 @@
+export type Variant = { name: string; value: string; weight: number };
+
 export type Flag = {
   key: string;
   value: string;
