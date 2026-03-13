@@ -235,9 +235,9 @@ Nice-to-haves that improve the day-to-day experience.
 ### Phase 7 — Task Checklist
 
 #### Dashboard improvements
-- [ ] Add flag search/filter input above the flag table (filter by key, description, or type)
-- [ ] Add "Revert to previous value" button on each flag row (reads last value from audit log, calls PUT)
-- [ ] Write tests for search/filter and revert functionality
+- [x] Add flag search/filter input above the flag table (filter by key, description, or type)
+- [x] Add "Revert to previous value" button on each flag row (reads last value from audit log, calls PUT)
+- [x] Write tests for search/filter and revert functionality
 
 #### Notifications
 - [ ] Add Slack/Discord webhook notification on flag changes (configurable webhook URL via env var or settings)

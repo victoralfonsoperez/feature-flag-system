@@ -32,8 +32,16 @@ Monorepo with npm workspaces:
 - Shared types in `packages/dashboard/src/types.ts`
 - API client in `packages/dashboard/src/api.ts`
 - Styling: Tailwind CSS utility classes, no CSS files
-- Build-time badge color: `bg-amber-100 text-amber-800`; runtime: `bg-blue-100 text-blue-800`
-- Warning banners use: `bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-md px-3 py-2`
+- Build-time badge color: `bg-amber-900/40 text-amber-300`; runtime: `bg-blue-900/40 text-blue-300`
+- Warning banners use: `bg-amber-900/30 border border-amber-700 text-amber-300 text-sm rounded-md px-3 py-2`
+
+## Frontend Design Rules
+
+- **Dark theme only** — backgrounds: page `gray-950`, surfaces `gray-900`, inputs `gray-800`; borders: `gray-700` (cards), `gray-600` (inputs)
+- **Accent colors** — blue (primary/runtime), amber (warnings/build-time), red (danger/delete), green (success/created); badges and banners use translucent `bg-[color]-900/40 text-[color]-300`
+- **Buttons** — primary `bg-blue-600 hover:bg-blue-700`, secondary `border border-gray-600 hover:bg-gray-800`, danger `bg-red-600 hover:bg-red-700`; all `rounded-md px-4 py-2 text-sm font-medium`; disabled `opacity-50 cursor-not-allowed`
+- **Inputs** — `bg-gray-800 border-gray-600 rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-blue-500`; validation swaps border/ring color (red/green/amber)
+- **Components** — cards `bg-gray-900 rounded-lg border border-gray-700 p-4`; modals `bg-black/50` backdrop + `max-w-md` panel; toasts `fixed bottom-4 right-4`; badges `text-xs px-2 py-0.5 rounded-full`; inline SVG icons (`w-5 h-5`, `currentColor`)
 
 ## API Conventions
 

@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 
-type ToastType = 'success' | 'error';
+type ToastType = 'success' | 'error' | 'info';
 
 type Toast = {
   id: number;
@@ -49,14 +49,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             className={`flex items-center gap-2 rounded-md border px-4 py-3 text-sm shadow-lg ${
               toast.type === 'success'
                 ? 'bg-green-900/30 border-green-700 text-green-300'
-                : 'bg-red-900/30 border-red-700 text-red-300'
+                : toast.type === 'info'
+                  ? 'bg-blue-900/30 border-blue-700 text-blue-300'
+                  : 'bg-red-900/30 border-red-700 text-red-300'
             }`}
           >
             <span className="flex-1">{toast.message}</span>
             <button
               onClick={() => dismiss(toast.id)}
               className={`ml-2 font-medium hover:opacity-70 ${
-                toast.type === 'success' ? 'text-green-400' : 'text-red-400'
+                toast.type === 'success' ? 'text-green-400' : toast.type === 'info' ? 'text-blue-400' : 'text-red-400'
               }`}
               aria-label="Dismiss"
             >

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getFlags, getAuthStatus, updateFlag, createFlag, deleteFlag } from './api';
+import { getFlags, getAuthStatus, updateFlag, createFlag, deleteFlag, getAuditLog } from './api';
 import type { Flag, Environment, CreateFlagInput, UpdateFlagInput } from './types';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { ToastProvider, useToast } from './components/Toast';
@@ -91,6 +91,24 @@ function Dashboard() {
     showToast(`Flag "${key}" deleted`, 'success');
   }
 
+  async function handleRevertFlag(flag: Flag) {
+    try {
+      const entries = await getAuditLog(flag.key);
+      const prev = entries.find(
+        (e) => e.action === 'updated' && e.old_value !== null && e.old_value !== flag.value,
+      );
+      if (!prev) {
+        showToast('No previous value to revert to', 'info');
+        return;
+      }
+      const updated = await updateFlag(flag.key, { value: prev.old_value! });
+      setFlags((prev) => prev.map((f) => (f.key === flag.key ? updated : f)));
+      showToast(`Flag "${flag.key}" reverted to "${prev.old_value}"`, 'success');
+    } catch (e) {
+      showToast(`Failed to revert flag: ${e instanceof Error ? e.message : 'Unknown error'}`, 'error');
+    }
+  }
+
   if (isLoading || setupRequired === null) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-950"><p className="text-gray-400">Loading...</p></div>;
   }
@@ -111,7 +129,7 @@ function Dashboard() {
         {view === 'flags' ? (
           <>
             <CreateFlagForm onSubmit={handleCreateFlag} />
-            <FlagTable flags={flags} loading={loading} error={error} onRetry={handleRetry} onToggle={handleToggle} onEdit={setEditingFlag} onDelete={setDeletingFlag} onViewHistory={handleViewHistory} />
+            <FlagTable flags={flags} loading={loading} error={error} onRetry={handleRetry} onToggle={handleToggle} onEdit={setEditingFlag} onDelete={setDeletingFlag} onViewHistory={handleViewHistory} onRevert={handleRevertFlag} />
             {editingFlag && (
               <EditFlagModal
                 flag={editingFlag}
