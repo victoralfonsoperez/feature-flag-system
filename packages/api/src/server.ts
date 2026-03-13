@@ -54,11 +54,11 @@ async function start() {
 
   // Structured request logging: log method, path, status, and duration
   app.addHook('onRequest', async (request) => {
-    (request as any).startTime = Date.now();
+    request.startTime = Date.now();
   });
 
   app.addHook('onResponse', async (request, reply) => {
-    const duration = Date.now() - ((request as any).startTime || Date.now());
+    const duration = Date.now() - (request.startTime || Date.now());
     request.log.info({
       method: request.method,
       path: request.url,
