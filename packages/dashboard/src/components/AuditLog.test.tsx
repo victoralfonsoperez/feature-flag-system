@@ -18,6 +18,7 @@ afterEach(() => {
 const mockEntries: AuditLogEntry[] = [
   {
     id: 3,
+    app_id: 'default',
     flag_key: 'dark-mode',
     action: 'deleted',
     old_value: 'true',
@@ -27,6 +28,7 @@ const mockEntries: AuditLogEntry[] = [
   },
   {
     id: 2,
+    app_id: 'default',
     flag_key: 'dark-mode',
     action: 'updated',
     old_value: 'false',
@@ -36,6 +38,7 @@ const mockEntries: AuditLogEntry[] = [
   },
   {
     id: 1,
+    app_id: 'default',
     flag_key: 'dark-mode',
     action: 'created',
     old_value: null,
@@ -90,7 +93,7 @@ describe('AuditLog', () => {
     mockGetAuditLog.mockResolvedValue(mockEntries);
     render(<AuditLog flagKey="dark-mode" />);
     await waitFor(() => {
-      expect(mockGetAuditLog).toHaveBeenCalledWith('dark-mode');
+      expect(mockGetAuditLog).toHaveBeenCalledWith('dark-mode', undefined);
     });
     expect(screen.getByText('Activity Log: dark-mode')).toBeDefined();
   });

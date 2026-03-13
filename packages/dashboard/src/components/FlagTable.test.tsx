@@ -9,6 +9,7 @@ const noop = () => {};
 
 const mockFlags: Flag[] = [
   {
+    app_id: 'default',
     key: 'dark-mode',
     value: 'true',
     type: 'runtime',
@@ -20,6 +21,7 @@ const mockFlags: Flag[] = [
     updated_by: 'api-token',
   },
   {
+    app_id: 'default',
     key: 'cdn-url',
     value: 'https://cdn.example.com',
     type: 'build-time',
@@ -251,6 +253,7 @@ describe('FlagTable', () => {
 
   describe('build-time toggle warning', () => {
     const buildTimeBoolFlag: Flag = {
+      app_id: 'default',
       key: 'enable-ssr',
       value: 'true',
       type: 'build-time',

@@ -13,6 +13,7 @@ import {
 import type { Flag, CreateFlagInput, UpdateFlagInput, User } from './api';
 
 const mockFlag: Flag = {
+  app_id: 'default',
   key: 'test-flag',
   value: 'true',
   type: 'runtime',

@@ -6,6 +6,7 @@ import type { Flag } from '../types';
 afterEach(cleanup);
 
 const mockFlag: Flag = {
+  app_id: 'default',
   key: 'dark-mode',
   value: 'true',
   type: 'runtime',
