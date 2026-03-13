@@ -8,12 +8,30 @@ import { authRoutes } from './routes/auth.js';
 import { tokenRoutes } from './routes/tokens.js';
 import { userRoutes } from './routes/users.js';
 import { auditLogRoutes } from './routes/audit-log.js';
+import { healthRoutes } from './routes/health.js';
 import './types.js';
 
 const port = Number(process.env.PORT) || 3100;
 
 async function start() {
-  const app = Fastify({ logger: true });
+  const app = Fastify({
+    logger: {
+      level: process.env.LOG_LEVEL || 'info',
+      serializers: {
+        req(request) {
+          return {
+            method: request.method,
+            url: request.url,
+          };
+        },
+        res(reply) {
+          return {
+            statusCode: reply.statusCode,
+          };
+        },
+      },
+    },
+  });
 
   await app.register(cors, { origin: true, credentials: true });
   await app.register(cookie);
@@ -33,6 +51,23 @@ async function start() {
       .status(error.statusCode ?? 500)
       .send({ error: error.message ?? 'Internal server error', statusCode: error.statusCode ?? 500 });
   });
+
+  // Structured request logging: log method, path, status, and duration
+  app.addHook('onRequest', async (request) => {
+    (request as any).startTime = Date.now();
+  });
+
+  app.addHook('onResponse', async (request, reply) => {
+    const duration = Date.now() - ((request as any).startTime || Date.now());
+    request.log.info({
+      method: request.method,
+      path: request.url,
+      statusCode: reply.statusCode,
+      durationMs: duration,
+    }, 'request completed');
+  });
+
+  await app.register(healthRoutes, { prefix: '/health' });
 
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(tokenRoutes, { prefix: '/api/tokens' });

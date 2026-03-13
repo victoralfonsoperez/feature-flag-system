@@ -206,10 +206,10 @@ Make it reliable enough to run in production.
 - [x] Add global rate limiting (100 req/min)
 - [x] Add stricter rate limiting on login endpoint (10 req/min)
 
-#### Observability & reliability
-- [ ] Add `GET /health` endpoint returning `{ status: "ok", uptime, version }` for load balancer probes
-- [ ] Add structured request logging (method, path, status, duration) — consider `pino` (already a Fastify default)
-- [ ] Write tests for the health endpoint
+#### Observability & reliability (done)
+- [x] Add `GET /health` endpoint returning `{ status: "ok", uptime, version }` for load balancer probes
+- [x] Add structured request logging (method, path, status, duration) — consider `pino` (already a Fastify default)
+- [x] Write tests for the health endpoint
 
 #### Local development
 - [ ] Write `docker-compose.yml` at repo root — API + dashboard + volume for SQLite persistence
