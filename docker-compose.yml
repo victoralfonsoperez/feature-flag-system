@@ -1,0 +1,31 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3100:3100"
+    environment:
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-change-me}
+      - PORT=3100
+    volumes:
+      - sqlite-data:/app/packages/api
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3100/health').then(r=>{if(!r.ok)process.exit(1)})"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: packages/dashboard/Dockerfile
+    ports:
+      - "3200:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  sqlite-data:
