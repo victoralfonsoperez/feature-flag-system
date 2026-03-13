@@ -1,6 +1,6 @@
 import rateLimit from '@fastify/rate-limit';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { triggerGitHubRebuild } from '../webhook.js';
+import { triggerGitHubRebuild, sendWebhookNotification } from '../webhook.js';
 import type { FlagRow } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import '../types.js';
@@ -117,6 +117,8 @@ export async function flagRoutes(app: FastifyInstance) {
       .prepare('INSERT INTO audit_log (flag_key, action, new_value, changed_by) VALUES (?, ?, ?, ?)')
       .run(key, 'created', value, request.user?.email ?? 'unknown');
 
+    await sendWebhookNotification(key, 'created', request.user?.email ?? 'unknown');
+
     const created = app.db.prepare('SELECT * FROM flags WHERE key = ?').get(key);
     return reply.status(201).send(created);
   });
@@ -154,6 +156,8 @@ export async function flagRoutes(app: FastifyInstance) {
       )
       .run(key, 'updated', existing.value, newValue, changedBy);
 
+    await sendWebhookNotification(key, 'updated', changedBy);
+
     // Trigger rebuild if build-time flag changed
     if (existing.type === 'build-time' && newValue !== existing.value) {
       await triggerGitHubRebuild(key);
@@ -180,6 +184,8 @@ export async function flagRoutes(app: FastifyInstance) {
     app.db
       .prepare('INSERT INTO audit_log (flag_key, action, old_value, changed_by) VALUES (?, ?, ?, ?)')
       .run(key, 'deleted', existing.value, request.user?.email ?? 'unknown');
+
+    await sendWebhookNotification(key, 'deleted', request.user?.email ?? 'unknown');
 
     return reply.status(204).send();
   });

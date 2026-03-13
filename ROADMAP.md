@@ -240,9 +240,9 @@ Nice-to-haves that improve the day-to-day experience.
 - [x] Write tests for search/filter and revert functionality
 
 #### Notifications
-- [ ] Add Slack/Discord webhook notification on flag changes (configurable webhook URL via env var or settings)
-- [ ] Fire notification on create, update, and delete with flag key, action, and actor
-- [ ] Write tests for webhook dispatch
+- [x] Add Slack/Discord webhook notification on flag changes (configurable webhook URL via env var or settings)
+- [x] Fire notification on create, update, and delete with flag key, action, and actor
+- [x] Write tests for webhook dispatch
 
 #### Multi-app support
 - [ ] Add `app_id` column to flags table and update schema

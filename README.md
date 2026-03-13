@@ -225,6 +225,7 @@ The API image uses a multi-stage build — native dependencies (`better-sqlite3`
 | `GITHUB_PAT` | GitHub Personal Access Token for webhook dispatch | No |
 | `GITHUB_OWNER` | GitHub repository owner for webhook dispatch | No |
 | `GITHUB_REPO` | GitHub repository name for webhook dispatch | No |
+| `WEBHOOK_URL` | Slack/Discord webhook URL for flag change notifications | No |
 
 ## Roadmap
 
