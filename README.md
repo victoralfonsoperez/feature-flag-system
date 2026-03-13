@@ -187,14 +187,34 @@ npm run dev -w packages/dashboard
 
 ## Docker
 
-Build and run the API as a container:
+### Full stack with Docker Compose
+
+Run the API and dashboard together:
+
+```bash
+docker compose up --build
+```
+
+This starts:
+- **API** at `http://localhost:3100`
+- **Dashboard** at `http://localhost:3200` (nginx serving the built React app, proxying `/api` to the API container)
+
+SQLite data is persisted in a Docker volume (`sqlite-data`), so flags survive container restarts. To start fresh, remove the volume:
+
+```bash
+docker compose down -v
+```
+
+### API only
+
+Build and run the API as a standalone container:
 
 ```bash
 docker build -t feature-flag-api .
 docker run -p 3100:3100 -e JWT_SECRET=your-random-secret feature-flag-api
 ```
 
-The API will be available at `http://localhost:3100`. The image uses a multi-stage build — native dependencies (`better-sqlite3`) are compiled in a build stage, and only the runtime artifacts are copied to the final slim image.
+The API image uses a multi-stage build — native dependencies (`better-sqlite3`) are compiled in a build stage, and only the runtime artifacts are copied to the final slim image.
 
 ### Environment Variables
 

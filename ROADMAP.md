@@ -211,9 +211,9 @@ Make it reliable enough to run in production.
 - [x] Add structured request logging (method, path, status, duration) — consider `pino` (already a Fastify default)
 - [x] Write tests for the health endpoint
 
-#### Local development
-- [ ] Write `docker-compose.yml` at repo root — API + dashboard + volume for SQLite persistence
-- [ ] Document `docker compose up` workflow in README
+#### Local development (done)
+- [x] Write `docker-compose.yml` at repo root — API + dashboard + volume for SQLite persistence
+- [x] Document `docker compose up` workflow in README
 
 #### Deployment
 - [ ] Deploy API to hosting provider (Fly.io, Railway, or VPS)
