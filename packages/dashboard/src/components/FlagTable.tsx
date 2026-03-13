@@ -10,6 +10,7 @@ type FlagTableProps = {
   onEdit: (flag: Flag) => void;
   onDelete: (flag: Flag) => void;
   onViewHistory: (flagKey: string) => void;
+  onRevert?: (flag: Flag) => void;
 };
 
 function SkeletonRow() {
@@ -83,12 +84,13 @@ function TypeBadge({ type }: { type: string }) {
   );
 }
 
-function FlagCard({ flag, onToggle, onEdit, onDelete, onViewHistory }: {
+function FlagCard({ flag, onToggle, onEdit, onDelete, onViewHistory, onRevert }: {
   flag: Flag;
   onToggle: (flag: Flag, newValue: string) => void;
   onEdit: (flag: Flag) => void;
   onDelete: (flag: Flag) => void;
   onViewHistory: (flagKey: string) => void;
+  onRevert?: (flag: Flag) => void;
 }) {
   const isBool = flag.value === 'true' || flag.value === 'false';
   return (
@@ -116,6 +118,7 @@ function FlagCard({ flag, onToggle, onEdit, onDelete, onViewHistory }: {
       </div>
       <div className="flex gap-2">
         <button onClick={() => onViewHistory(flag.key)} className="text-xs px-2.5 py-1 rounded-md bg-gray-800 text-gray-300 hover:bg-gray-700">History</button>
+        {onRevert && <button onClick={() => onRevert(flag)} className="text-xs px-2.5 py-1 rounded-md bg-amber-900/40 text-amber-300 hover:bg-amber-900/60">Revert</button>}
         <button onClick={() => onEdit(flag)} className="text-xs px-2.5 py-1 rounded-md bg-blue-900/40 text-blue-300 hover:bg-blue-900/60">Edit</button>
         <button onClick={() => onDelete(flag)} className="text-xs px-2.5 py-1 rounded-md bg-red-900/40 text-red-300 hover:bg-red-900/60">Delete</button>
       </div>
@@ -123,8 +126,9 @@ function FlagCard({ flag, onToggle, onEdit, onDelete, onViewHistory }: {
   );
 }
 
-export default function FlagTable({ flags, loading, error, onRetry, onToggle, onEdit, onDelete, onViewHistory }: FlagTableProps) {
+export default function FlagTable({ flags, loading, error, onRetry, onToggle, onEdit, onDelete, onViewHistory, onRevert }: FlagTableProps) {
   const [buildTimeWarning, setBuildTimeWarning] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const handleToggle = useCallback((flag: Flag, newValue: string) => {
     onToggle(flag.key, newValue);
@@ -189,17 +193,40 @@ export default function FlagTable({ flags, loading, error, onRetry, onToggle, on
     );
   }
 
+  const query = searchQuery.toLowerCase();
+  const filteredFlags = query
+    ? flags.filter(
+        (f) =>
+          f.key.toLowerCase().includes(query) ||
+          f.description.toLowerCase().includes(query) ||
+          f.type.toLowerCase().includes(query),
+      )
+    : flags;
+
   return (
     <div>
+      <input
+        type="text"
+        placeholder="Search by key, description, or type..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-sm text-gray-200 mb-3 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+      />
       {buildTimeWarning && (
         <div className="bg-amber-900/30 border border-amber-700 text-amber-300 text-sm rounded-md px-3 py-2 mb-3">
           ⚠ Build-time flag &ldquo;{buildTimeWarning}&rdquo; was updated. Changes will take effect after a rebuild.
         </div>
       )}
 
+      {filteredFlags.length === 0 ? (
+        <div className="w-full bg-gray-900 rounded-lg border border-gray-700 p-12 text-center">
+          <p className="text-gray-400 text-lg">No flags match your search.</p>
+        </div>
+      ) : (
+      <>
       {/* Mobile card layout */}
       <div className="sm:hidden space-y-3">
-        {flags.map((flag) => (
+        {filteredFlags.map((flag) => (
           <FlagCard
             key={flag.key}
             flag={flag}
@@ -207,6 +234,7 @@ export default function FlagTable({ flags, loading, error, onRetry, onToggle, on
             onEdit={onEdit}
             onDelete={onDelete}
             onViewHistory={onViewHistory}
+            onRevert={onRevert}
           />
         ))}
       </div>
@@ -223,7 +251,7 @@ export default function FlagTable({ flags, loading, error, onRetry, onToggle, on
           </tr>
         </thead>
         <tbody>
-          {flags.map((flag) => {
+          {filteredFlags.map((flag) => {
             const isBool = flag.value === 'true' || flag.value === 'false';
             return (
               <tr key={flag.key} className="border-b border-gray-800">
@@ -254,6 +282,14 @@ export default function FlagTable({ flags, loading, error, onRetry, onToggle, on
                     >
                       History
                     </button>
+                    {onRevert && (
+                      <button
+                        onClick={() => onRevert(flag)}
+                        className="text-xs px-2.5 py-1 rounded-md bg-amber-900/40 text-amber-300 hover:bg-amber-900/60"
+                      >
+                        Revert
+                      </button>
+                    )}
                     <button
                       onClick={() => onEdit(flag)}
                       className="text-xs px-2.5 py-1 rounded-md bg-blue-900/40 text-blue-300 hover:bg-blue-900/60"
@@ -273,6 +309,8 @@ export default function FlagTable({ flags, loading, error, onRetry, onToggle, on
           })}
         </tbody>
       </table>
+      </>
+      )}
     </div>
   );
 }

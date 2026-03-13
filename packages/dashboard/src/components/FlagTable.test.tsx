@@ -41,6 +41,7 @@ const defaultProps = {
   onEdit: noop as (flag: Flag) => void,
   onDelete: noop as (flag: Flag) => void,
   onViewHistory: noop as (flagKey: string) => void,
+  onRevert: noop as (flag: Flag) => void,
 };
 
 describe('FlagTable', () => {
@@ -185,6 +186,67 @@ describe('FlagTable', () => {
   it('does not show variant badge when variants is null', () => {
     render(<FlagTable {...defaultProps} />);
     expect(screen.queryByText(/variant/)).toBeNull();
+  });
+
+  describe('search/filter', () => {
+    it('renders search input', () => {
+      render(<FlagTable {...defaultProps} />);
+      expect(screen.getByPlaceholderText('Search by key, description, or type...')).toBeDefined();
+    });
+
+    it('filters flags by key', () => {
+      render(<FlagTable {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText('Search by key, description, or type...'), { target: { value: 'dark' } });
+      expect(screen.getAllByText('dark-mode').length).toBeGreaterThan(0);
+      expect(screen.queryByText('cdn-url')).toBeNull();
+    });
+
+    it('filters flags by description', () => {
+      render(<FlagTable {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText('Search by key, description, or type...'), { target: { value: 'CDN base' } });
+      expect(screen.getAllByText('cdn-url').length).toBeGreaterThan(0);
+      expect(screen.queryByText('dark-mode')).toBeNull();
+    });
+
+    it('filters flags by type', () => {
+      render(<FlagTable {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText('Search by key, description, or type...'), { target: { value: 'build-time' } });
+      expect(screen.getAllByText('cdn-url').length).toBeGreaterThan(0);
+      expect(screen.queryByText('dark-mode')).toBeNull();
+    });
+
+    it('shows "no results" message when search matches nothing', () => {
+      render(<FlagTable {...defaultProps} />);
+      fireEvent.change(screen.getByPlaceholderText('Search by key, description, or type...'), { target: { value: 'nonexistent' } });
+      expect(screen.getByText('No flags match your search.')).toBeDefined();
+    });
+
+    it('shows all flags when search is cleared', () => {
+      render(<FlagTable {...defaultProps} />);
+      const input = screen.getByPlaceholderText('Search by key, description, or type...');
+      fireEvent.change(input, { target: { value: 'dark' } });
+      expect(screen.queryByText('cdn-url')).toBeNull();
+      fireEvent.change(input, { target: { value: '' } });
+      expect(screen.getAllByText('dark-mode').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('cdn-url').length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('revert button', () => {
+    it('renders Revert button for each flag', () => {
+      render(<FlagTable {...defaultProps} />);
+      const revertButtons = screen.getAllByText('Revert');
+      // 2 flags x 2 views (mobile + desktop) = 4
+      expect(revertButtons.length).toBe(4);
+    });
+
+    it('Revert button calls onRevert with the flag', () => {
+      const onRevert = vi.fn();
+      render(<FlagTable {...defaultProps} onRevert={onRevert} />);
+      const revertButtons = screen.getAllByText('Revert');
+      fireEvent.click(revertButtons[0]);
+      expect(onRevert).toHaveBeenCalledWith(mockFlags[0]);
+    });
   });
 
   describe('build-time toggle warning', () => {
