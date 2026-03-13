@@ -16,6 +16,8 @@ afterEach(cleanup);
 const defaultProps = {
   environment: 'production' as Environment,
   onEnvironmentChange: () => {},
+  appId: 'default',
+  onAppIdChange: () => {},
   view: 'flags' as const,
   onViewChange: () => {},
 };
@@ -97,5 +99,29 @@ describe('Header', () => {
       target: { value: 'development' },
     });
     expect(onChange).toHaveBeenCalledWith('development');
+  });
+
+  it('renders app ID input with current value', () => {
+    render(<Header {...defaultProps} appId="my-app" />);
+    const inputs = screen.getAllByDisplayValue('my-app');
+    expect(inputs.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('calls onAppIdChange on blur', () => {
+    const onAppIdChange = vi.fn();
+    render(<Header {...defaultProps} onAppIdChange={onAppIdChange} />);
+    const input = screen.getByLabelText('App:', { exact: false }) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'new-app' } });
+    fireEvent.blur(input);
+    expect(onAppIdChange).toHaveBeenCalledWith('new-app');
+  });
+
+  it('calls onAppIdChange on Enter key', () => {
+    const onAppIdChange = vi.fn();
+    render(<Header {...defaultProps} onAppIdChange={onAppIdChange} />);
+    const input = screen.getByLabelText('App:', { exact: false }) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'enter-app' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onAppIdChange).toHaveBeenCalledWith('enter-app');
   });
 });

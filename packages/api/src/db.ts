@@ -10,7 +10,8 @@ export function initDatabase(dbPath?: string): Database.Database {
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS flags (
-      key TEXT PRIMARY KEY,
+      app_id TEXT NOT NULL DEFAULT 'default',
+      key TEXT NOT NULL,
       value TEXT NOT NULL,
       type TEXT NOT NULL CHECK (type IN ('build-time', 'runtime')),
       environment TEXT NOT NULL DEFAULT 'production',
@@ -18,11 +19,13 @@ export function initDatabase(dbPath?: string): Database.Database {
       variants TEXT DEFAULT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_by TEXT DEFAULT 'system'
+      updated_by TEXT DEFAULT 'system',
+      PRIMARY KEY (app_id, key)
     );
 
     CREATE TABLE IF NOT EXISTS audit_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      app_id TEXT NOT NULL DEFAULT 'default',
       flag_key TEXT NOT NULL,
       action TEXT NOT NULL,
       old_value TEXT,
@@ -56,10 +59,43 @@ export function initDatabase(dbPath?: string): Database.Database {
     );
   `);
 
+  // Migration: add app_id to existing flags table if it uses the old schema
+  const flagsInfo = db.prepare("PRAGMA table_info(flags)").all() as { name: string }[];
+  const hasAppId = flagsInfo.some((col) => col.name === 'app_id');
+  if (!hasAppId) {
+    db.exec(`
+      ALTER TABLE flags RENAME TO flags_old;
+      CREATE TABLE flags (
+        app_id TEXT NOT NULL DEFAULT 'default',
+        key TEXT NOT NULL,
+        value TEXT NOT NULL,
+        type TEXT NOT NULL CHECK (type IN ('build-time', 'runtime')),
+        environment TEXT NOT NULL DEFAULT 'production',
+        description TEXT DEFAULT '',
+        variants TEXT DEFAULT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_by TEXT DEFAULT 'system',
+        PRIMARY KEY (app_id, key)
+      );
+      INSERT INTO flags (key, value, type, environment, description, variants, created_at, updated_at, updated_by)
+        SELECT key, value, type, environment, description, variants, created_at, updated_at, updated_by FROM flags_old;
+      DROP TABLE flags_old;
+    `);
+  }
+
+  // Migration: add app_id to existing audit_log table if missing
+  const auditInfo = db.prepare("PRAGMA table_info(audit_log)").all() as { name: string }[];
+  const auditHasAppId = auditInfo.some((col) => col.name === 'app_id');
+  if (!auditHasAppId) {
+    db.exec(`ALTER TABLE audit_log ADD COLUMN app_id TEXT NOT NULL DEFAULT 'default'`);
+  }
+
   return db;
 }
 
 export type FlagRow = {
+  app_id: string;
   key: string;
   value: string;
   type: 'build-time' | 'runtime';
@@ -88,6 +124,7 @@ export type SessionRow = {
 
 export type AuditLogRow = {
   id: number;
+  app_id: string;
   flag_key: string;
   action: string;
   old_value: string | null;

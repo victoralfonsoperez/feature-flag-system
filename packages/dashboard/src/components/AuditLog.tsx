@@ -4,6 +4,7 @@ import type { AuditLogEntry } from '../types';
 
 type AuditLogProps = {
   flagKey?: string;
+  appId?: string;
 };
 
 function ActionBadge({ action }: { action: string }) {
@@ -23,7 +24,7 @@ function ActionBadge({ action }: { action: string }) {
   );
 }
 
-export default function AuditLog({ flagKey }: AuditLogProps) {
+export default function AuditLog({ flagKey, appId }: AuditLogProps) {
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -31,11 +32,11 @@ export default function AuditLog({ flagKey }: AuditLogProps) {
   useEffect(() => {
     setLoading(true);
     setError('');
-    getAuditLog(flagKey)
+    getAuditLog(flagKey, appId)
       .then((data) => setEntries(data))
       .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load audit log'))
       .finally(() => setLoading(false));
-  }, [flagKey]);
+  }, [flagKey, appId]);
 
   return (
     <div className="max-w-4xl mx-auto p-6">

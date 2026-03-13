@@ -245,11 +245,11 @@ Nice-to-haves that improve the day-to-day experience.
 - [x] Write tests for webhook dispatch
 
 #### Multi-app support
-- [ ] Add `app_id` column to flags table and update schema
-- [ ] Scope all flag CRUD and resolve endpoints by `app_id` query parameter
-- [ ] Add app selector in the dashboard UI
-- [ ] Update SDK `FlagProvider` to accept an `appId` prop
-- [ ] Write migration and tests for multi-app scoping
+- [x] Add `app_id` column to flags table and update schema
+- [x] Scope all flag CRUD and resolve endpoints by `app_id` query parameter
+- [x] Add app selector in the dashboard UI
+- [x] Update SDK `FlagProvider` to accept an `appId` prop
+- [x] Write migration and tests for multi-app scoping
 
 #### Release
 - [ ] Write project documentation and usage guide (`docs/USAGE.md` — update existing)

@@ -16,17 +16,18 @@ const TEST_EMAIL = 'test@example.com';
 
 function seedFlags(app: FastifyInstance) {
   const insert = app.db.prepare(
-    `INSERT INTO flags (key, value, type, environment, description, variants)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO flags (app_id, key, value, type, environment, description, variants)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
   );
 
   const flags = [
-    ['enable_dark_mode', 'true', 'runtime', 'production', 'Toggle dark mode', null],
-    ['maintenance_mode', 'false', 'runtime', 'production', 'Show maintenance page', null],
-    ['enable_signup', 'true', 'runtime', 'staging', 'Allow signups', null],
-    ['enable_new_checkout', 'true', 'build-time', 'production', 'New checkout flow', null],
-    ['api_base_url', 'https://api.example.com', 'build-time', 'production', 'API base URL', null],
+    ['default', 'enable_dark_mode', 'true', 'runtime', 'production', 'Toggle dark mode', null],
+    ['default', 'maintenance_mode', 'false', 'runtime', 'production', 'Show maintenance page', null],
+    ['default', 'enable_signup', 'true', 'runtime', 'staging', 'Allow signups', null],
+    ['default', 'enable_new_checkout', 'true', 'build-time', 'production', 'New checkout flow', null],
+    ['default', 'api_base_url', 'https://api.example.com', 'build-time', 'production', 'API base URL', null],
     [
+      'default',
       'cta_button_color',
       'blue',
       'runtime',
@@ -41,8 +42,8 @@ function seedFlags(app: FastifyInstance) {
   ];
 
   const tx = app.db.transaction(() => {
-    for (const [key, value, type, environment, description, variants] of flags) {
-      insert.run(key, value, type, environment, description, variants);
+    for (const [app_id, key, value, type, environment, description, variants] of flags) {
+      insert.run(app_id, key, value, type, environment, description, variants);
     }
   });
   tx();
@@ -108,6 +109,12 @@ describe('GET /api/flags', () => {
     const flags = res.json() as FlagRow[];
     expect(flags.every((f) => f.type === 'runtime' && f.environment === 'production')).toBe(true);
   });
+
+  it('scopes by app_id and returns empty for unknown app', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/flags?app_id=unknown-app' });
+    const flags = res.json() as FlagRow[];
+    expect(flags.length).toBe(0);
+  });
 });
 
 // ── GET /api/flags/:key ─────────────────────────────────────────────────
@@ -120,6 +127,7 @@ describe('GET /api/flags/:key', () => {
     expect(flag.key).toBe('enable_dark_mode');
     expect(flag.value).toBe('true');
     expect(flag.type).toBe('runtime');
+    expect(flag.app_id).toBe('default');
   });
 
   it('returns 404 for missing flag', async () => {
@@ -144,6 +152,7 @@ describe('POST /api/flags', () => {
     expect(flag.key).toBe('new_feature');
     expect(flag.value).toBe('enabled');
     expect(flag.environment).toBe('production');
+    expect(flag.app_id).toBe('default');
   });
 
   it('records user email in audit log', async () => {
@@ -435,5 +444,109 @@ describe('GET /api/flags/resolve', () => {
     expect(Math.abs(counts.blue / total - 0.5)).toBeLessThan(tolerance);
     expect(Math.abs(counts.green / total - 0.25)).toBeLessThan(tolerance);
     expect(Math.abs(counts.orange / total - 0.25)).toBeLessThan(tolerance);
+  });
+});
+
+// ── Multi-app scoping ───────────────────────────────────────────────────
+
+describe('multi-app scoping', () => {
+  it('creates a flag under a custom app_id', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/flags',
+      headers: { cookie: authCookie },
+      payload: { key: 'shared_key', value: 'app1-value', type: 'runtime', app_id: 'app1' },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().app_id).toBe('app1');
+    expect(res.json().key).toBe('shared_key');
+  });
+
+  it('allows the same key in a different app_id', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/flags',
+      headers: { cookie: authCookie },
+      payload: { key: 'shared_key', value: 'app2-value', type: 'runtime', app_id: 'app2' },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().app_id).toBe('app2');
+    expect(res.json().value).toBe('app2-value');
+  });
+
+  it('returns flags scoped to app_id', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/flags?app_id=app1' });
+    const flags = res.json() as FlagRow[];
+    expect(flags.length).toBe(1);
+    expect(flags[0].key).toBe('shared_key');
+    expect(flags[0].value).toBe('app1-value');
+  });
+
+  it('GET single flag is scoped by app_id', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/flags/shared_key?app_id=app2' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().value).toBe('app2-value');
+  });
+
+  it('PUT updates the correct app_id flag', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/flags/shared_key?app_id=app1',
+      headers: { cookie: authCookie },
+      payload: { value: 'app1-updated' },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().value).toBe('app1-updated');
+
+    // Verify app2 flag is unchanged
+    const app2 = await app.inject({ method: 'GET', url: '/api/flags/shared_key?app_id=app2' });
+    expect(app2.json().value).toBe('app2-value');
+  });
+
+  it('DELETE removes only the correct app_id flag', async () => {
+    // Create a temp flag in app1
+    await app.inject({
+      method: 'POST',
+      url: '/api/flags',
+      headers: { cookie: authCookie },
+      payload: { key: 'to_delete_multi', value: 'v1', type: 'runtime', app_id: 'app1' },
+    });
+    await app.inject({
+      method: 'POST',
+      url: '/api/flags',
+      headers: { cookie: authCookie },
+      payload: { key: 'to_delete_multi', value: 'v2', type: 'runtime', app_id: 'app2' },
+    });
+
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/flags/to_delete_multi?app_id=app1',
+      headers: { cookie: authCookie },
+    });
+    expect(res.statusCode).toBe(204);
+
+    // app1 flag is gone
+    const check1 = await app.inject({ method: 'GET', url: '/api/flags/to_delete_multi?app_id=app1' });
+    expect(check1.statusCode).toBe(404);
+
+    // app2 flag still exists
+    const check2 = await app.inject({ method: 'GET', url: '/api/flags/to_delete_multi?app_id=app2' });
+    expect(check2.statusCode).toBe(200);
+    expect(check2.json().value).toBe('v2');
+  });
+
+  it('resolve scopes by app_id', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/flags/resolve?app_id=app1' });
+    const resolved = res.json();
+    expect(resolved).toHaveProperty('shared_key', 'app1-updated');
+    expect(resolved).not.toHaveProperty('enable_dark_mode');
+  });
+
+  it('audit log records app_id', async () => {
+    const log = app.db
+      .prepare("SELECT app_id FROM audit_log WHERE flag_key = 'shared_key' AND app_id = 'app1'")
+      .get() as { app_id: string } | undefined;
+    expect(log).toBeDefined();
+    expect(log!.app_id).toBe('app1');
   });
 });

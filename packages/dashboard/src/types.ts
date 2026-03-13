@@ -1,6 +1,7 @@
 export type Variant = { name: string; value: string; weight: number };
 
 export type Flag = {
+  app_id: string;
   key: string;
   value: string;
   type: 'build-time' | 'runtime';
@@ -21,6 +22,7 @@ export type CreateFlagInput = {
   environment?: string;
   description?: string;
   variants?: string;
+  app_id?: string;
 };
 
 export type UpdateFlagInput = {
@@ -31,6 +33,7 @@ export type UpdateFlagInput = {
 
 export type AuditLogEntry = {
   id: number;
+  app_id: string;
   flag_key: string;
   action: string;
   old_value: string | null;

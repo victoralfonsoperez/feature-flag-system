@@ -8,6 +8,8 @@ export interface FlagProviderProps {
   serviceUrl: string;
   environment?: string;
   userId?: string;
+  /** App ID for multi-app scoping. Defaults to 'default'. */
+  appId?: string;
   defaults?: FlagValues;
   /** Cache TTL in seconds. Set to 0 to disable caching. Default: 0 (disabled). */
   cacheTtl?: number;
@@ -25,8 +27,9 @@ interface CacheEntry {
   timestamp: number;
 }
 
-function buildCacheKey(serviceUrl: string, environment: string, userId?: string): string {
+function buildCacheKey(serviceUrl: string, environment: string, userId?: string, appId?: string): string {
   const parts = [CACHE_KEY_PREFIX, serviceUrl, environment];
+  if (appId && appId !== 'default') parts.push(`app:${appId}`);
   if (userId) parts.push(userId);
   return parts.join(':');
 }
@@ -56,12 +59,13 @@ export function FlagProvider({
   serviceUrl,
   environment = 'production',
   userId,
+  appId,
   defaults = {},
   cacheTtl = 0,
   onVariantAssigned,
   children,
 }: FlagProviderProps) {
-  const cacheKey = buildCacheKey(serviceUrl, environment, userId);
+  const cacheKey = buildCacheKey(serviceUrl, environment, userId, appId);
   const cached = cacheTtl > 0 ? readCache(cacheKey, cacheTtl) : null;
 
   const [flags, setFlags] = useState<FlagValues>(cached ? { ...defaults, ...cached } : defaults);
@@ -73,6 +77,7 @@ export function FlagProvider({
       env: environment,
     });
     if (userId) params.set('user_id', userId);
+    if (appId) params.set('app_id', appId);
 
     fetch(`${serviceUrl}/api/flags/resolve?${params}`)
       .then((res) => res.json())
@@ -100,7 +105,7 @@ export function FlagProvider({
         }
         setReady(true);
       });
-  }, [serviceUrl, environment, userId]);
+  }, [serviceUrl, environment, userId, appId]);
 
   if (!ready) return null;
 

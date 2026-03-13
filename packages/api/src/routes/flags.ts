@@ -7,12 +7,13 @@ import '../types.js';
 
 export async function flagRoutes(app: FastifyInstance) {
   await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
-  // GET /api/flags — list all flags, filterable by type and env
+  // GET /api/flags — list all flags, filterable by type, env, and app_id
   app.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { type, env } = request.query as { type?: string; env?: string };
+    const { type, env, app_id } = request.query as { type?: string; env?: string; app_id?: string };
+    const appId = app_id ?? 'default';
 
-    let sql = 'SELECT * FROM flags WHERE 1=1';
-    const params: string[] = [];
+    let sql = 'SELECT * FROM flags WHERE app_id = ?';
+    const params: string[] = [appId];
 
     if (type) {
       sql += ' AND type = ?';
@@ -29,14 +30,16 @@ export async function flagRoutes(app: FastifyInstance) {
 
   // GET /api/flags/resolve — resolve flags for a client (runtime + A/B)
   app.get('/resolve', async (request: FastifyRequest, reply: FastifyReply) => {
-    const { env, type, user_id } = request.query as {
+    const { env, type, user_id, app_id } = request.query as {
       env?: string;
       type?: string;
       user_id?: string;
+      app_id?: string;
     };
+    const appId = app_id ?? 'default';
 
-    let sql = 'SELECT * FROM flags WHERE 1=1';
-    const params: string[] = [];
+    let sql = 'SELECT * FROM flags WHERE app_id = ?';
+    const params: string[] = [appId];
 
     if (type) {
       sql += ' AND type = ?';
@@ -67,7 +70,10 @@ export async function flagRoutes(app: FastifyInstance) {
   // GET /api/flags/:key — get a single flag
   app.get('/:key', async (request: FastifyRequest, reply: FastifyReply) => {
     const { key } = request.params as { key: string };
-    const flag = app.db.prepare('SELECT * FROM flags WHERE key = ?').get(key);
+    const { app_id } = request.query as { app_id?: string };
+    const appId = app_id ?? 'default';
+
+    const flag = app.db.prepare('SELECT * FROM flags WHERE app_id = ? AND key = ?').get(appId, key);
 
     if (!flag) {
       return reply.status(404).send({ error: 'Flag not found', statusCode: 404 });
@@ -77,8 +83,9 @@ export async function flagRoutes(app: FastifyInstance) {
 
   // POST /api/flags — create a new flag
   app.post('/', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
-    const { key, value, type, environment, description, variants } =
+    const { key, value, type, environment, description, variants, app_id } =
       request.body as Partial<FlagRow>;
+    const appId = app_id ?? 'default';
 
     if (!key || !value || !type) {
       return reply.status(400).send({ error: 'key, value, and type are required', statusCode: 400 });
@@ -101,25 +108,25 @@ export async function flagRoutes(app: FastifyInstance) {
         .send({ error: `environment must be one of: ${allowedEnvironments.join(', ')}`, statusCode: 400 });
     }
 
-    const existing = app.db.prepare('SELECT key FROM flags WHERE key = ?').get(key);
+    const existing = app.db.prepare('SELECT key FROM flags WHERE app_id = ? AND key = ?').get(appId, key);
     if (existing) {
       return reply.status(409).send({ error: 'Flag key already exists', statusCode: 409 });
     }
 
     app.db
       .prepare(
-        `INSERT INTO flags (key, value, type, environment, description, variants)
-         VALUES (?, ?, ?, ?, ?, ?)`
+        `INSERT INTO flags (app_id, key, value, type, environment, description, variants)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
       )
-      .run(key, value, type, environment ?? 'production', description ?? '', variants ?? null);
+      .run(appId, key, value, type, environment ?? 'production', description ?? '', variants ?? null);
 
     app.db
-      .prepare('INSERT INTO audit_log (flag_key, action, new_value, changed_by) VALUES (?, ?, ?, ?)')
-      .run(key, 'created', value, request.user?.email ?? 'unknown');
+      .prepare('INSERT INTO audit_log (app_id, flag_key, action, new_value, changed_by) VALUES (?, ?, ?, ?, ?)')
+      .run(appId, key, 'created', value, request.user?.email ?? 'unknown');
 
     await sendWebhookNotification(key, 'created', request.user?.email ?? 'unknown');
 
-    const created = app.db.prepare('SELECT * FROM flags WHERE key = ?').get(key);
+    const created = app.db.prepare('SELECT * FROM flags WHERE app_id = ? AND key = ?').get(appId, key);
     return reply.status(201).send(created);
   });
 
@@ -127,8 +134,10 @@ export async function flagRoutes(app: FastifyInstance) {
   app.put('/:key', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { key } = request.params as { key: string };
     const { value, description, variants } = request.body as Partial<FlagRow>;
+    const { app_id } = request.query as { app_id?: string };
+    const appId = app_id ?? 'default';
 
-    const existing = app.db.prepare('SELECT * FROM flags WHERE key = ?').get(key) as
+    const existing = app.db.prepare('SELECT * FROM flags WHERE app_id = ? AND key = ?').get(appId, key) as
       | FlagRow
       | undefined;
 
@@ -146,15 +155,15 @@ export async function flagRoutes(app: FastifyInstance) {
       .prepare(
         `UPDATE flags
          SET value = ?, description = ?, variants = ?, updated_at = datetime('now'), updated_by = ?
-         WHERE key = ?`
+         WHERE app_id = ? AND key = ?`
       )
-      .run(newValue, newDescription, newVariants, changedBy, key);
+      .run(newValue, newDescription, newVariants, changedBy, appId, key);
 
     app.db
       .prepare(
-        'INSERT INTO audit_log (flag_key, action, old_value, new_value, changed_by) VALUES (?, ?, ?, ?, ?)'
+        'INSERT INTO audit_log (app_id, flag_key, action, old_value, new_value, changed_by) VALUES (?, ?, ?, ?, ?, ?)'
       )
-      .run(key, 'updated', existing.value, newValue, changedBy);
+      .run(appId, key, 'updated', existing.value, newValue, changedBy);
 
     await sendWebhookNotification(key, 'updated', changedBy);
 
@@ -163,15 +172,17 @@ export async function flagRoutes(app: FastifyInstance) {
       await triggerGitHubRebuild(key);
     }
 
-    const updated = app.db.prepare('SELECT * FROM flags WHERE key = ?').get(key);
+    const updated = app.db.prepare('SELECT * FROM flags WHERE app_id = ? AND key = ?').get(appId, key);
     return reply.send(updated);
   });
 
   // DELETE /api/flags/:key — remove a flag
   app.delete('/:key', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { key } = request.params as { key: string };
+    const { app_id } = request.query as { app_id?: string };
+    const appId = app_id ?? 'default';
 
-    const existing = app.db.prepare('SELECT * FROM flags WHERE key = ?').get(key) as
+    const existing = app.db.prepare('SELECT * FROM flags WHERE app_id = ? AND key = ?').get(appId, key) as
       | FlagRow
       | undefined;
 
@@ -179,11 +190,11 @@ export async function flagRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: 'Flag not found', statusCode: 404 });
     }
 
-    app.db.prepare('DELETE FROM flags WHERE key = ?').run(key);
+    app.db.prepare('DELETE FROM flags WHERE app_id = ? AND key = ?').run(appId, key);
 
     app.db
-      .prepare('INSERT INTO audit_log (flag_key, action, old_value, changed_by) VALUES (?, ?, ?, ?)')
-      .run(key, 'deleted', existing.value, request.user?.email ?? 'unknown');
+      .prepare('INSERT INTO audit_log (app_id, flag_key, action, old_value, changed_by) VALUES (?, ?, ?, ?, ?)')
+      .run(appId, key, 'deleted', existing.value, request.user?.email ?? 'unknown');
 
     await sendWebhookNotification(key, 'deleted', request.user?.email ?? 'unknown');
 

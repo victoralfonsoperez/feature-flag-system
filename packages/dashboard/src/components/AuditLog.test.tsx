@@ -90,7 +90,7 @@ describe('AuditLog', () => {
     mockGetAuditLog.mockResolvedValue(mockEntries);
     render(<AuditLog flagKey="dark-mode" />);
     await waitFor(() => {
-      expect(mockGetAuditLog).toHaveBeenCalledWith('dark-mode');
+      expect(mockGetAuditLog).toHaveBeenCalledWith('dark-mode', undefined);
     });
     expect(screen.getByText('Activity Log: dark-mode')).toBeDefined();
   });

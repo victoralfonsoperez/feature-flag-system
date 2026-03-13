@@ -9,6 +9,7 @@ const noop = () => {};
 
 const mockFlags: Flag[] = [
   {
+    app_id: 'default',
     key: 'dark-mode',
     value: 'true',
     type: 'runtime',
@@ -20,6 +21,7 @@ const mockFlags: Flag[] = [
     updated_by: 'api-token',
   },
   {
+    app_id: 'default',
     key: 'cdn-url',
     value: 'https://cdn.example.com',
     type: 'build-time',

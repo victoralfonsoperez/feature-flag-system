@@ -327,6 +327,43 @@ describe('FlagProvider caching', () => {
     );
   });
 
+  it('passes appId as query param in fetch URL', async () => {
+    mockFetch.mockReturnValue(jsonResponse({ dark_mode: 'true' }));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          appId: 'my-app',
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    expect(mockFetch).toHaveBeenCalledOnce();
+    const url = mockFetch.mock.calls[0][0] as string;
+    expect(url).toContain('app_id=my-app');
+  });
+
+  it('uses separate cache keys per appId', async () => {
+    mockFetch.mockReturnValue(jsonResponse({ flag: 'val' }));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          appId: 'app-x',
+          cacheTtl: 60,
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    const appKey = 'ff-sdk-cache:http://localhost:3100:production:app:app-x';
+    expect(sessionStorage.getItem(appKey)).not.toBeNull();
+    // Default key should not exist
+    const defaultKey = 'ff-sdk-cache:http://localhost:3100:production';
+    expect(sessionStorage.getItem(defaultKey)).toBeNull();
+  });
+
   it('keeps cached values on fetch error when cache exists', async () => {
     const cacheKey = 'ff-sdk-cache:http://localhost:3100:production';
     sessionStorage.setItem(cacheKey, JSON.stringify({

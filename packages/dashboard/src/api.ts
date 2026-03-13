@@ -170,13 +170,17 @@ export function deleteUser(id: number): Promise<void> {
 
 // Flags
 
-export function getFlags(env?: Environment): Promise<Flag[]> {
-  const query = env ? `?env=${env}` : '';
+export function getFlags(env?: Environment, appId?: string): Promise<Flag[]> {
+  const params = new URLSearchParams();
+  if (env) params.set('env', env);
+  if (appId) params.set('app_id', appId);
+  const query = params.toString() ? `?${params}` : '';
   return request<Flag[]>(`/flags${query}`);
 }
 
-export function getFlag(key: string): Promise<Flag> {
-  return request<Flag>(`/flags/${encodeURIComponent(key)}`);
+export function getFlag(key: string, appId?: string): Promise<Flag> {
+  const query = appId ? `?app_id=${encodeURIComponent(appId)}` : '';
+  return request<Flag>(`/flags/${encodeURIComponent(key)}${query}`);
 }
 
 export function createFlag(input: CreateFlagInput): Promise<Flag> {
@@ -187,23 +191,28 @@ export function createFlag(input: CreateFlagInput): Promise<Flag> {
   });
 }
 
-export function updateFlag(key: string, input: UpdateFlagInput): Promise<Flag> {
-  return authedRequest<Flag>(`/flags/${encodeURIComponent(key)}`, {
+export function updateFlag(key: string, input: UpdateFlagInput, appId?: string): Promise<Flag> {
+  const query = appId ? `?app_id=${encodeURIComponent(appId)}` : '';
+  return authedRequest<Flag>(`/flags/${encodeURIComponent(key)}${query}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   });
 }
 
-export function deleteFlag(key: string): Promise<void> {
-  return authedRequest<void>(`/flags/${encodeURIComponent(key)}`, {
+export function deleteFlag(key: string, appId?: string): Promise<void> {
+  const query = appId ? `?app_id=${encodeURIComponent(appId)}` : '';
+  return authedRequest<void>(`/flags/${encodeURIComponent(key)}${query}`, {
     method: 'DELETE',
   });
 }
 
 // Audit Log
 
-export function getAuditLog(flagKey?: string): Promise<AuditLogEntry[]> {
-  const query = flagKey ? `?flag_key=${encodeURIComponent(flagKey)}` : '';
+export function getAuditLog(flagKey?: string, appId?: string): Promise<AuditLogEntry[]> {
+  const params = new URLSearchParams();
+  if (flagKey) params.set('flag_key', flagKey);
+  if (appId) params.set('app_id', appId);
+  const query = params.toString() ? `?${params}` : '';
   return authedRequest<AuditLogEntry[]>(`/audit-log${query}`);
 }

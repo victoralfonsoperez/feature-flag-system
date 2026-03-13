@@ -5,14 +5,25 @@ import { useAuth } from '../auth/AuthContext';
 type HeaderProps = {
   environment: Environment;
   onEnvironmentChange: (env: Environment) => void;
+  appId: string;
+  onAppIdChange: (appId: string) => void;
   view: 'flags' | 'tokens' | 'users' | 'activity';
   onViewChange: (view: 'flags' | 'tokens' | 'users' | 'activity') => void;
   onOpenSettings?: () => void;
 };
 
-export default function Header({ environment, onEnvironmentChange, view, onViewChange, onOpenSettings }: HeaderProps) {
+export default function Header({ environment, onEnvironmentChange, appId, onAppIdChange, view, onViewChange, onOpenSettings }: HeaderProps) {
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [appIdDraft, setAppIdDraft] = useState(appId);
+
+  function commitAppId() {
+    const trimmed = appIdDraft.trim() || 'default';
+    setAppIdDraft(trimmed);
+    if (trimmed !== appId) {
+      onAppIdChange(trimmed);
+    }
+  }
 
   function navButton(label: string, target: typeof view) {
     return (
@@ -43,6 +54,18 @@ export default function Header({ environment, onEnvironmentChange, view, onViewC
           </nav>
         </div>
         <div className="hidden md:flex items-center gap-4">
+          <div className="flex items-center gap-1">
+            <label htmlFor="app-id-input" className="text-xs text-gray-400">App:</label>
+            <input
+              id="app-id-input"
+              type="text"
+              value={appIdDraft}
+              onChange={(e) => setAppIdDraft(e.target.value)}
+              onBlur={commitAppId}
+              onKeyDown={(e) => { if (e.key === 'Enter') commitAppId(); }}
+              className="w-28 border border-gray-600 rounded-md px-2 py-1 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
           {view === 'flags' && (
             <select
               value={environment}
@@ -100,6 +123,18 @@ export default function Header({ environment, onEnvironmentChange, view, onViewC
             {navButton('Activity', 'activity')}
             {user?.role === 'admin' && navButton('Users', 'users')}
           </nav>
+          <div className="flex items-center gap-1">
+            <label htmlFor="app-id-input-mobile" className="text-xs text-gray-400">App:</label>
+            <input
+              id="app-id-input-mobile"
+              type="text"
+              value={appIdDraft}
+              onChange={(e) => setAppIdDraft(e.target.value)}
+              onBlur={commitAppId}
+              onKeyDown={(e) => { if (e.key === 'Enter') commitAppId(); }}
+              className="w-full border border-gray-600 rounded-md px-2 py-1 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
           {view === 'flags' && (
             <select
               value={environment}
