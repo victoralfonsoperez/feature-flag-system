@@ -253,6 +253,7 @@ describe('FlagTable', () => {
 
   describe('build-time toggle warning', () => {
     const buildTimeBoolFlag: Flag = {
+      app_id: 'default',
       key: 'enable-ssr',
       value: 'true',
       type: 'build-time',
