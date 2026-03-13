@@ -1,3 +1,27 @@
+export async function sendWebhookNotification(
+  flagKey: string,
+  action: string,
+  changedBy: string
+): Promise<void> {
+  const webhookUrl = process.env.WEBHOOK_URL;
+
+  if (!webhookUrl) {
+    return;
+  }
+
+  const message = `Flag "${flagKey}" was ${action} by ${changedBy}`;
+
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: message, content: message }),
+    });
+  } catch (err) {
+    console.warn(`Webhook notification failed: ${err}`);
+  }
+}
+
 export async function triggerGitHubRebuild(flagKey: string): Promise<void> {
   const token = process.env.GITHUB_PAT;
   const owner = process.env.GITHUB_OWNER;
