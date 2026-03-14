@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Environment } from '../types';
 import { useAuth } from '../auth/AuthContext';
+import { useToast } from './Toast';
 
 type HeaderProps = {
   environment: Environment;
@@ -13,9 +14,33 @@ type HeaderProps = {
 };
 
 export default function Header({ environment, onEnvironmentChange, appId, onAppIdChange, view, onViewChange, onOpenSettings }: HeaderProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, auth0Domain, auth0ClientId } = useAuth();
+  const { showToast } = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
   const [appIdDraft, setAppIdDraft] = useState(appId);
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  async function handleChangePassword() {
+    if (!user?.email || !auth0Domain || !auth0ClientId) return;
+    setChangingPassword(true);
+    try {
+      const res = await fetch(`https://${auth0Domain}/dbconnections/change_password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: auth0ClientId,
+          email: user.email,
+          connection: 'Username-Password-Authentication',
+        }),
+      });
+      if (!res.ok) throw new Error('Request failed');
+      showToast('Password reset email sent. Check your inbox.', 'success');
+    } catch {
+      showToast('Failed to send password reset email.', 'error');
+    } finally {
+      setChangingPassword(false);
+    }
+  }
 
   function commitAppId() {
     const trimmed = appIdDraft.trim() || 'default';
@@ -101,6 +126,15 @@ export default function Header({ environment, onEnvironmentChange, appId, onAppI
           {user && (
             <span className="text-sm text-gray-400">{user.email}</span>
           )}
+          {user && (
+            <button
+              onClick={handleChangePassword}
+              disabled={changingPassword}
+              className="text-sm text-gray-400 hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {changingPassword ? 'Sending…' : 'Change Password'}
+            </button>
+          )}
           <button
             onClick={logout}
             className="text-sm text-gray-400 hover:text-gray-200"
@@ -170,12 +204,23 @@ export default function Header({ environment, onEnvironmentChange, appId, onAppI
                 </button>
               )}
             </div>
-            <button
-              onClick={logout}
-              className="text-sm text-gray-400 hover:text-gray-200"
-            >
-              Logout
-            </button>
+            <div className="flex items-center gap-3">
+              {user && (
+                <button
+                  onClick={handleChangePassword}
+                  disabled={changingPassword}
+                  className="text-sm text-gray-400 hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {changingPassword ? 'Sending…' : 'Change Password'}
+                </button>
+              )}
+              <button
+                onClick={logout}
+                className="text-sm text-gray-400 hover:text-gray-200"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       )}
