@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, pbkdf2Sync } from 'node:crypto';
 import Fastify, { FastifyInstance } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { authRoutes } from '../routes/auth.js';
@@ -73,7 +73,7 @@ describe('API token fallback', () => {
   beforeAll(async () => {
     // Insert an API token directly into the database
     apiTokenPlaintext = randomBytes(32).toString('hex');
-    const tokenHash = createHash('sha256').update(apiTokenPlaintext).digest('hex');
+    const tokenHash = pbkdf2Sync(apiTokenPlaintext, 'test-salt', 100_000, 32, 'sha256').toString('hex');
     await db.run(
       'INSERT INTO api_tokens (name, token_hash, created_by, creator_email, creator_role) VALUES (?, ?, ?, ?, ?)',
       'test-token', tokenHash, 'auth0|creator', 'creator@test.com', 'admin',
