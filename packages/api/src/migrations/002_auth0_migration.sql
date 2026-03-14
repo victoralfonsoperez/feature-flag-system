@@ -28,7 +28,7 @@ BEGIN
       creator_email = u.email,
       creator_role = u.role
     FROM users u
-    WHERE api_tokens.created_by = u.id::TEXT
+    WHERE api_tokens.created_by::TEXT = u.id::TEXT
       AND api_tokens.creator_email IS NULL;
   END IF;
 END
