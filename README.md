@@ -2,6 +2,15 @@
 
 A self-hosted feature flag system with build-time and runtime flag support, GitHub Actions integration, and A/B testing capabilities.
 
+## Live Demo
+
+The system is deployed and publicly accessible:
+
+- **Dashboard**: https://kanary-feature-flags.netlify.app/
+- **API**: https://kanary-api.onrender.com (health check: [`/health`](https://kanary-api.onrender.com/health))
+
+> **Note:** The Render free tier spins down after inactivity. The first request may take 30–60 seconds while the service starts up.
+
 ## Architecture
 
 ```
@@ -278,6 +287,10 @@ npm run test:db:down -w packages/api  # stop test PostgreSQL
 | `VITE_AUTH0_AUDIENCE` | Auth0 API identifier (must match API's `AUTH0_AUDIENCE`) | Yes |
 | `VITE_AUTH0_CALLBACK_URL` | Redirect URL after login (e.g. `http://localhost:5173`) | Yes |
 
+## Deployment
+
+For production deployment instructions covering Supabase, Render, and Netlify, see [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md).
+
 ## Roadmap
 
-See [ROADMAP.md](./ROADMAP.md) for the full implementation plan — 7 phases over 12 weeks (~81 hours total at 5–10h/week).
+See [ROADMAP.md](./ROADMAP.md) for the full implementation plan. The project has reached **v1.0** with all core features complete: API, dashboard, SDK, A/B testing, Auth0 authentication, and production deployment.

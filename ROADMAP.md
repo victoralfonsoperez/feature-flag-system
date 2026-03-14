@@ -223,7 +223,7 @@ Make it reliable enough to run in production.
 - [x] Update README with the new `docker compose` instructions
 
 #### Database migration: SQLite → PostgreSQL (done)
-- [ ] Create Supabase project and provision free-tier PostgreSQL database
+- [x] Create Supabase project and provision free-tier PostgreSQL database
 - [x] Replace `better-sqlite3` with `pg` (node-postgres) driver in `packages/api`
 - [x] Create `packages/api/src/db.ts` adapter that wraps `pg.Pool` with the same query interface
   - Replace `db.prepare(sql).get(...)` → `pool.query(sql, params)` with `LIMIT 1`
@@ -243,23 +243,23 @@ Make it reliable enough to run in production.
 - [x] Add `DATABASE_URL` env var support for connection string
 
 #### Deploy backend to Render
-- [ ] Create Render free-tier Web Service linked to the repo (`packages/api`)
-- [ ] Configure build command (`npm install && npm run build -w packages/api`) and start command
-- [ ] Set environment variables: `DATABASE_URL`, `JWT_SECRET`, `GITHUB_PAT`, `WEBHOOK_URL`
-- [ ] Configure CORS to allow requests from the Netlify frontend domain
-- [ ] Verify health check endpoint (`GET /health`) works on Render
+- [x] Create Render free-tier Web Service linked to the repo (`packages/api`)
+- [x] Configure build command (`npm install && npm run build -w packages/api`) and start command
+- [x] Set environment variables: `DATABASE_URL`, `AUTH0_DOMAIN`, `AUTH0_AUDIENCE`, `CORS_ORIGIN`
+- [x] Configure CORS to allow requests from the Netlify frontend domain
+- [x] Verify health check endpoint (`GET /health`) works on Render
 
 #### Deploy frontend to Netlify
-- [ ] Create Netlify site linked to the repo (`packages/dashboard`)
-- [ ] Configure build command (`npm run build -w packages/dashboard`) and publish directory (`packages/dashboard/dist`)
-- [ ] Set `VITE_API_URL` env var pointing to the Render backend URL
-- [ ] Add `_redirects` or `netlify.toml` for SPA routing (`/* → /index.html`)
-- [ ] Verify dashboard loads and connects to the deployed API
+- [x] Create Netlify site linked to the repo (`packages/dashboard`)
+- [x] Configure build command (`npm run build -w packages/dashboard`) and publish directory (`packages/dashboard/dist`)
+- [x] Set `VITE_API_URL` env var pointing to the Render backend URL
+- [x] Add `_redirects` or `netlify.toml` for SPA routing (`/* → /index.html`)
+- [x] Verify dashboard loads and connects to the deployed API
 
 #### End-to-end verification
-- [ ] Run full smoke test: setup admin → login → create flag → toggle → edit → delete → audit log
-- [ ] Verify SDK `/resolve` endpoint works from an external origin
-- [ ] Write deployment documentation (`docs/DEPLOYMENT.md`) covering Supabase, Render, and Netlify setup
+- [x] Run full smoke test: setup admin → login → create flag → toggle → edit → delete → audit log
+- [x] Verify SDK `/resolve` endpoint works from an external origin
+- [x] Write deployment documentation (`docs/DEPLOYMENT.md`) covering Supabase, Render, and Netlify setup
 
 **Milestone:** System is deployed and serving real traffic on Supabase + Render + Netlify.
 
@@ -292,8 +292,8 @@ Nice-to-haves that improve the day-to-day experience.
 - [x] Write migration and tests for multi-app scoping
 
 #### Release
-- [ ] Write project documentation and usage guide (`docs/USAGE.md` — update existing)
-- [ ] Review and update README with final architecture and setup instructions
+- [x] Write project documentation and usage guide (`docs/USAGE.md` — update existing)
+- [x] Review and update README with final architecture and setup instructions
 - [ ] Tag `v1.0.0` release
 
 **Milestone:** v1.0 shipped.

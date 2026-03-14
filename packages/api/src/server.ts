@@ -31,7 +31,11 @@ async function start() {
     },
   });
 
-  await app.register(cors, { origin: true, credentials: true });
+  const corsOrigin = process.env.CORS_ORIGIN;
+  await app.register(cors, {
+    origin: corsOrigin ? corsOrigin.split(',').map((o) => o.trim()) : true,
+    credentials: true,
+  });
   await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
 
   const db = await initDatabase();
