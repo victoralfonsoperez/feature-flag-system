@@ -5,12 +5,10 @@ import {
   createFlag,
   updateFlag,
   deleteFlag,
-  getUsers,
-  createUser,
-  deleteUser,
+  setAccessTokenGetter,
   ApiError,
 } from './api';
-import type { Flag, CreateFlagInput, UpdateFlagInput, User } from './api';
+import type { Flag, CreateFlagInput, UpdateFlagInput } from './api';
 
 const mockFlag: Flag = {
   app_id: 'default',
@@ -53,7 +51,7 @@ describe('getFlags', () => {
 
     const result = await getFlags();
 
-    expect(mockFetch).toHaveBeenCalledWith('/api/flags', { credentials: 'include' });
+    expect(mockFetch).toHaveBeenCalledWith('/api/flags', { headers: {} });
     expect(result).toEqual([mockFlag]);
   });
 
@@ -62,7 +60,7 @@ describe('getFlags', () => {
 
     await getFlags('staging');
 
-    expect(mockFetch).toHaveBeenCalledWith('/api/flags?env=staging', { credentials: 'include' });
+    expect(mockFetch).toHaveBeenCalledWith('/api/flags?env=staging', { headers: {} });
   });
 
   it('throws ApiError on failure', async () => {
@@ -81,7 +79,7 @@ describe('getFlag', () => {
 
     const result = await getFlag('test-flag');
 
-    expect(mockFetch).toHaveBeenCalledWith('/api/flags/test-flag', { credentials: 'include' });
+    expect(mockFetch).toHaveBeenCalledWith('/api/flags/test-flag', { headers: {} });
     expect(result).toEqual(mockFlag);
   });
 
@@ -92,7 +90,7 @@ describe('getFlag', () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       '/api/flags/flag%20with%20spaces',
-      { credentials: 'include' },
+      { headers: {} },
     );
   });
 
@@ -115,7 +113,8 @@ describe('createFlag', () => {
     description: 'New flag',
   };
 
-  it('sends POST with body (cookie-based auth)', async () => {
+  it('sends POST with body and Auth0 Bearer token', async () => {
+    setAccessTokenGetter(() => Promise.resolve('auth0-test-token'));
     const created = { ...mockFlag, ...input };
     mockFetch.mockResolvedValue(jsonResponse(created, 201));
 
@@ -123,8 +122,7 @@ describe('createFlag', () => {
 
     expect(mockFetch).toHaveBeenCalledWith('/api/flags', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer auth0-test-token' },
       body: JSON.stringify(input),
     });
     expect(result.key).toBe('new-flag');
@@ -153,7 +151,8 @@ describe('createFlag', () => {
 describe('updateFlag', () => {
   const input: UpdateFlagInput = { value: 'updated-value' };
 
-  it('sends PUT with body (cookie-based auth)', async () => {
+  it('sends PUT with body and Bearer token', async () => {
+    setAccessTokenGetter(() => Promise.resolve('auth0-test-token'));
     const updated = { ...mockFlag, value: 'updated-value' };
     mockFetch.mockResolvedValue(jsonResponse(updated));
 
@@ -161,8 +160,7 @@ describe('updateFlag', () => {
 
     expect(mockFetch).toHaveBeenCalledWith('/api/flags/test-flag', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer auth0-test-token' },
       body: JSON.stringify(input),
     });
     expect(result.value).toBe('updated-value');
@@ -179,14 +177,15 @@ describe('updateFlag', () => {
 });
 
 describe('deleteFlag', () => {
-  it('sends DELETE (cookie-based auth)', async () => {
+  it('sends DELETE', async () => {
+    setAccessTokenGetter(() => Promise.resolve('auth0-test-token'));
     mockFetch.mockResolvedValue(new Response(null, { status: 204 }));
 
     await deleteFlag('test-flag');
 
     expect(mockFetch).toHaveBeenCalledWith('/api/flags/test-flag', {
       method: 'DELETE',
-      credentials: 'include',
+      headers: { Authorization: 'Bearer auth0-test-token' },
     });
   });
 
@@ -195,69 +194,6 @@ describe('deleteFlag', () => {
 
     const result = await deleteFlag('test-flag');
 
-    expect(result).toBeUndefined();
-  });
-});
-
-describe('getUsers', () => {
-  const mockUser: User = {
-    id: 1,
-    email: 'admin@test.com',
-    role: 'admin',
-    created_at: '2026-01-01T00:00:00Z',
-  };
-
-  it('fetches users list', async () => {
-    mockFetch.mockResolvedValue(jsonResponse([mockUser]));
-
-    const result = await getUsers();
-
-    expect(mockFetch).toHaveBeenCalledWith('/api/users', { credentials: 'include' });
-    expect(result).toEqual([mockUser]);
-  });
-});
-
-describe('createUser', () => {
-  it('sends POST with email, password, and role', async () => {
-    const created: User = { id: 2, email: 'new@test.com', role: 'viewer', created_at: '2026-01-02T00:00:00Z' };
-    mockFetch.mockResolvedValue(jsonResponse(created, 201));
-
-    const result = await createUser('new@test.com', 'Pass123!', 'viewer');
-
-    expect(mockFetch).toHaveBeenCalledWith('/api/users', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ email: 'new@test.com', password: 'Pass123!', role: 'viewer' }),
-    });
-    expect(result.email).toBe('new@test.com');
-  });
-
-  it('throws ApiError on 409 conflict', async () => {
-    mockFetch.mockResolvedValue(errorResponse(409, 'A user with this email already exists'));
-
-    await expect(createUser('dup@test.com', 'Pass123!', 'viewer')).rejects.toMatchObject({
-      status: 409,
-    });
-  });
-});
-
-describe('deleteUser', () => {
-  it('sends DELETE request', async () => {
-    mockFetch.mockResolvedValue(new Response(null, { status: 204 }));
-
-    await deleteUser(5);
-
-    expect(mockFetch).toHaveBeenCalledWith('/api/users/5', {
-      method: 'DELETE',
-      credentials: 'include',
-    });
-  });
-
-  it('returns undefined on 204', async () => {
-    mockFetch.mockResolvedValue(new Response(null, { status: 204 }));
-
-    const result = await deleteUser(5);
     expect(result).toBeUndefined();
   });
 });

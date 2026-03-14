@@ -1,42 +1,52 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { getMe, login as apiLogin, logout as apiLogout } from '../api';
+import { useAuth0 } from '@auth0/auth0-react';
+import { setAccessTokenGetter } from '../api';
 
-type User = { id: number; email: string; role: string };
+const ROLES_NAMESPACE = 'https://kanary.dev/roles';
+
+type User = { id: string; email: string; role: string };
 
 type AuthContextType = {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  login: () => void;
+  logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    user: auth0User,
+    isAuthenticated,
+    isLoading,
+    loginWithRedirect,
+    logout: auth0Logout,
+    getAccessTokenSilently,
+  } = useAuth0();
 
+  // Wire up the token getter for api.ts
   useEffect(() => {
-    getMe()
-      .then((data) => setUser(data.user))
-      .catch(() => setUser(null))
-      .finally(() => setIsLoading(false));
-  }, []);
+    if (isAuthenticated) {
+      setAccessTokenGetter(() => getAccessTokenSilently());
+    }
+  }, [isAuthenticated, getAccessTokenSilently]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const data = await apiLogin(email, password);
-    setUser(data.user);
-  }, []);
+  const user: User | null = isAuthenticated && auth0User
+    ? {
+        id: auth0User.sub || '',
+        email: auth0User.email || '',
+        role: ((auth0User[ROLES_NAMESPACE] as string[]) || []).includes('admin') ? 'admin' : 'viewer',
+      }
+    : null;
 
-  const logout = useCallback(async () => {
-    await apiLogout();
-    setUser(null);
-  }, []);
+  const login = () => { loginWithRedirect(); };
+  const logout = () => { auth0Logout({ logoutParams: { returnTo: window.location.origin } }); };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

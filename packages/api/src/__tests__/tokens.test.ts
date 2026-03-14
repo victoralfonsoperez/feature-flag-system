@@ -1,40 +1,31 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
-import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
 import { authRoutes } from '../routes/auth.js';
 import { tokenRoutes } from '../routes/tokens.js';
 import { flagRoutes } from '../routes/flags.js';
-import { hashPassword } from '../auth/password.js';
-import { createTokenPair } from '../auth/session.js';
 import type { Database } from '../db.js';
-import { createTestDb } from './test-helpers.js';
+import { createTestDb, createTestToken, mockAuth0Verification } from './test-helpers.js';
 import '../types.js';
 
+await mockAuth0Verification();
+
 let app: FastifyInstance;
-let authCookie: string;
+let authHeader: string;
 let db: Database;
 
 beforeAll(async () => {
   db = await createTestDb();
   app = Fastify();
   app.decorate('db', db);
-  await app.register(cookie);
   await app.register(rateLimit, { max: 1000, timeWindow: '1 minute' });
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(tokenRoutes, { prefix: '/api/tokens' });
   await app.register(flagRoutes, { prefix: '/api/flags' });
   await app.ready();
 
-  // Create a test user with JWT tokens
-  const passwordHash = await hashPassword('testpass');
-  const result = await db.run(
-    'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?) RETURNING id',
-    'tokenuser@test.com', passwordHash, 'admin',
-  );
-  const userId = result.rows[0].id as number;
-  const tokens = await createTokenPair(db, { id: userId, email: 'tokenuser@test.com', role: 'admin' });
-  authCookie = `access_token=${tokens.accessToken}; refresh_token=${tokens.refreshToken}`;
+  const token = await createTestToken({ email: 'tokenuser@test.com', roles: ['admin'] });
+  authHeader = `Bearer ${token}`;
 });
 
 afterAll(async () => {
@@ -47,7 +38,7 @@ describe('GET /api/tokens', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/tokens',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
     });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual([]);
@@ -67,7 +58,7 @@ describe('POST /api/tokens', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/tokens',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: { name: 'CI Token' },
     });
     expect(res.statusCode).toBe(201);
@@ -83,7 +74,7 @@ describe('POST /api/tokens', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/tokens',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: {},
     });
     expect(res.statusCode).toBe(400);
@@ -93,7 +84,7 @@ describe('POST /api/tokens', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/tokens',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
     });
     const tokens = res.json();
     expect(tokens.length).toBe(1);
@@ -107,7 +98,7 @@ describe('POST /api/tokens', () => {
     await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: { key: 'token_test_flag', value: 'yes', type: 'runtime' },
     });
 
@@ -136,7 +127,7 @@ describe('POST /api/tokens', () => {
     const res = await app.inject({
       method: 'DELETE',
       url: `/api/tokens/${tokenId}`,
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
     });
     expect(res.statusCode).toBe(204);
 
@@ -144,7 +135,7 @@ describe('POST /api/tokens', () => {
     const listRes = await app.inject({
       method: 'GET',
       url: '/api/tokens',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
     });
     expect(listRes.json()).toEqual([]);
   });
@@ -153,7 +144,7 @@ describe('POST /api/tokens', () => {
     const res = await app.inject({
       method: 'DELETE',
       url: '/api/tokens/99999',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
     });
     expect(res.statusCode).toBe(404);
   });

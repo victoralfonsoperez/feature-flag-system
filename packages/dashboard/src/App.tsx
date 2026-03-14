@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getFlags, getAuthStatus, updateFlag, createFlag, deleteFlag, getAuditLog } from './api';
+import { getFlags, updateFlag, createFlag, deleteFlag, getAuditLog } from './api';
 import type { Flag, Environment, CreateFlagInput, UpdateFlagInput } from './types';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { ToastProvider, useToast } from './components/Toast';
@@ -8,25 +8,21 @@ import FlagTable from './components/FlagTable';
 import CreateFlagForm from './components/CreateFlagForm';
 import EditFlagModal from './components/EditFlagModal';
 import DeleteFlagModal from './components/DeleteFlagModal';
-import LoginForm from './components/LoginForm';
-import SetupForm from './components/SetupForm';
 import TokenManager from './components/TokenManager';
-import UserManager from './components/UserManager';
 import AuditLog from './components/AuditLog';
 import SettingsModal from './components/SettingsModal';
 
 const APP_ID_STORAGE_KEY = 'ff-dashboard-app-id';
 
 function Dashboard() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, login } = useAuth();
   const { showToast } = useToast();
   const [flags, setFlags] = useState<Flag[]>([]);
   const [environment, setEnvironment] = useState<Environment>('production');
   const [appId, setAppId] = useState<string>(() => localStorage.getItem(APP_ID_STORAGE_KEY) ?? 'default');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [setupRequired, setSetupRequired] = useState<boolean | null>(null);
-  const [view, setView] = useState<'flags' | 'tokens' | 'users' | 'activity'>('flags');
+  const [view, setView] = useState<'flags' | 'tokens' | 'activity'>('flags');
   const [editingFlag, setEditingFlag] = useState<Flag | null>(null);
   const [deletingFlag, setDeletingFlag] = useState<Flag | null>(null);
   const [activityFlagKey, setActivityFlagKey] = useState<string | undefined>();
@@ -42,18 +38,12 @@ function Dashboard() {
     setView('activity');
   }
 
-  function handleViewChange(newView: 'flags' | 'tokens' | 'users' | 'activity') {
+  function handleViewChange(newView: 'flags' | 'tokens' | 'activity') {
     if (newView !== 'activity') {
       setActivityFlagKey(undefined);
     }
     setView(newView);
   }
-
-  useEffect(() => {
-    getAuthStatus()
-      .then((data) => setSetupRequired(data.setupRequired))
-      .catch(() => setSetupRequired(false));
-  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -117,12 +107,14 @@ function Dashboard() {
     }
   }
 
-  if (isLoading || setupRequired === null) {
+  if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-950"><p className="text-gray-400">Loading...</p></div>;
   }
 
-  if (setupRequired) return <SetupForm />;
-  if (!isAuthenticated) return <LoginForm />;
+  if (!isAuthenticated) {
+    login();
+    return <div className="min-h-screen flex items-center justify-center bg-gray-950"><p className="text-gray-400">Redirecting to login...</p></div>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-950">
@@ -157,10 +149,8 @@ function Dashboard() {
           </>
         ) : view === 'tokens' ? (
           <TokenManager />
-        ) : view === 'activity' ? (
-          <AuditLog flagKey={activityFlagKey} appId={appId} />
         ) : (
-          <UserManager />
+          <AuditLog flagKey={activityFlagKey} appId={appId} />
         )}
       </main>
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}

@@ -33,8 +33,8 @@ export async function tokenRoutes(app: FastifyInstance) {
     const tokenHash = createHash('sha256').update(plaintext).digest('hex');
 
     const result = await app.db.run(
-      'INSERT INTO api_tokens (name, token_hash, created_by) VALUES (?, ?, ?) RETURNING id',
-      name, tokenHash, request.user!.id,
+      'INSERT INTO api_tokens (name, token_hash, created_by, creator_email, creator_role) VALUES (?, ?, ?, ?, ?) RETURNING id',
+      name, tokenHash, request.user!.id, request.user!.email, request.user!.role,
     );
 
     return reply.status(201).send({

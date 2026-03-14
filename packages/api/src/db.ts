@@ -59,10 +59,14 @@ export async function initDatabase(connectionString?: string): Promise<Database>
   // Test connection
   const client = await pool.connect();
   try {
-    // Run migration
-    const migrationPath = resolve(__dirname, 'migrations', '001_init.sql');
-    const migrationSql = readFileSync(migrationPath, 'utf-8');
-    await client.query(migrationSql);
+    // Run migrations
+    const migration001Path = resolve(__dirname, 'migrations', '001_init.sql');
+    const migration001Sql = readFileSync(migration001Path, 'utf-8');
+    await client.query(migration001Sql);
+
+    const migration002Path = resolve(__dirname, 'migrations', '002_auth0_migration.sql');
+    const migration002Sql = readFileSync(migration002Path, 'utf-8');
+    await client.query(migration002Sql);
   } finally {
     client.release();
   }
@@ -113,21 +117,6 @@ export type FlagRow = {
   updated_by: string;
 };
 
-export type UserRow = {
-  id: number;
-  email: string;
-  password_hash: string;
-  role: string;
-  created_at: string;
-};
-
-export type SessionRow = {
-  id: string;
-  user_id: number;
-  expires_at: string;
-  created_at: string;
-};
-
 export type AuditLogRow = {
   id: number;
   app_id: string;
@@ -143,7 +132,9 @@ export type ApiTokenRow = {
   id: number;
   name: string;
   token_hash: string;
-  created_by: number;
+  created_by: string;
+  creator_email: string | null;
+  creator_role: string | null;
   last_used_at: string | null;
   created_at: string;
 };

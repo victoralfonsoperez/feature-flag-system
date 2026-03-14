@@ -50,7 +50,7 @@ describe('TokenManager', () => {
   });
 
   it('creates a token and shows it', async () => {
-    vi.mocked(api.createToken).mockResolvedValue({ token: 'new-secret-token' });
+    vi.mocked(api.createToken).mockResolvedValue({ id: 1, name: 'My Token', token: 'new-secret-token' });
     vi.mocked(api.getTokens).mockResolvedValue([]);
     renderWithProviders();
     await waitFor(() => expect(screen.getByText('No API tokens yet.')).toBeDefined());
@@ -88,7 +88,7 @@ describe('TokenManager', () => {
   });
 
   it('dismisses the new token display', async () => {
-    vi.mocked(api.createToken).mockResolvedValue({ token: 'tok123' });
+    vi.mocked(api.createToken).mockResolvedValue({ id: 2, name: 'Test', token: 'tok123' });
     renderWithProviders();
     await waitFor(() => expect(screen.getByText('No API tokens yet.')).toBeDefined());
 

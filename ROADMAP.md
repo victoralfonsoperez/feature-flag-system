@@ -298,6 +298,45 @@ Nice-to-haves that improve the day-to-day experience.
 
 **Milestone:** v1.0 shipped.
 
+## Phase 8 — Auth0 Migration
+
+Migrate from custom JWT auth to Auth0 Universal Login.
+
+### Auth0 Migration — Task Checklist
+
+#### API changes (done)
+- [x] Install `jose` library for RS256 JWT verification
+- [x] Create `auth0.ts` module for Auth0 JWKS token verification
+- [x] Create `002_auth0_migration.sql` — add `creator_email`/`creator_role` to `api_tokens`, drop `sessions`/`users` tables
+- [x] Rewrite auth middleware: Auth0 JWT + API token fallback (remove cookie-based auth)
+- [x] Rewrite auth routes: keep `/status` (no-op) and `/me` (Auth0 claims)
+- [x] Update token routes to store `creator_email`/`creator_role`
+- [x] Update `server.ts` — remove `@fastify/cookie` and user routes
+- [x] Update types: `user.id` is now `string` (Auth0 sub), source is `'auth0' | 'api-token'`
+- [x] Delete: `password.ts`, `jwt.ts`, `session.ts`, `seed-admin.ts`, `routes/users.ts`
+
+#### Dashboard changes (done)
+- [x] Install `@auth0/auth0-react`
+- [x] Wrap app with `Auth0Provider` in `main.tsx`
+- [x] Rewrite `AuthContext.tsx` as thin `useAuth0()` wrapper
+- [x] Rewrite `api.ts` — Bearer token auth, remove cookie/refresh logic
+- [x] Update `App.tsx` — remove setup/login forms, auto-redirect to Auth0
+- [x] Update `Header.tsx` — remove Users nav button
+- [x] Delete: `LoginForm`, `SetupForm`, `UserManager` + their tests
+
+#### Tests (done)
+- [x] Create RS256 test helpers with `jose` key pair generation
+- [x] Create `auth-middleware.test.ts` for Auth0 + API token validation
+- [x] Rewrite `flags.test.ts`, `tokens.test.ts`, `audit-log.test.ts` to use Bearer tokens
+- [x] Rewrite `AuthContext.test.tsx` to mock `@auth0/auth0-react`
+- [x] Update `api.test.ts` and `Header.test.tsx`
+- [x] Delete old test files: `auth.test.ts`, `password.test.ts`, `jwt.test.ts`, `session.test.ts`, `users.test.ts`
+
+#### Documentation (done)
+- [x] Create `docs/auth0-setup.md` with tenant configuration guide
+
+**Milestone:** Auth system migrated to Auth0 Universal Login. Local user management removed.
+
 ---
 
 ## Summary

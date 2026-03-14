@@ -6,7 +6,7 @@ Project conventions and rules for Claude Code.
 
 Monorepo with npm workspaces:
 
-- `packages/api` — Fastify REST API with SQLite (better-sqlite3), TypeScript
+- `packages/api` — Fastify REST API with PostgreSQL (pg), TypeScript
 - `packages/dashboard` — React + Vite + Tailwind CSS dashboard UI
 - `packages/sdk` — React SDK for consuming flags at runtime
 
@@ -16,6 +16,14 @@ Monorepo with npm workspaces:
 - Create a feature branch per task: `feat/`, `fix/`, `docs/` prefixes
 - Push the branch and create a PR to merge into `main`
 - Commit messages follow conventional commits: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`
+- **Before committing**, always run lint, tests, and build to verify changes:
+  1. `npm run lint -w packages/dashboard` — lint dashboard
+  2. `npm test -w packages/dashboard` — run dashboard tests
+  3. `npm run build -w packages/dashboard` — build dashboard
+  4. `npm run lint -w packages/api` — lint API
+  5. `npm test -w packages/api` — run API tests (requires test DB: `npm run test:db:up -w packages/api`)
+  6. `npm run build -w packages/api` — build API
+  7. Only commit if all checks pass; fix any failures first
 
 ## Testing
 
@@ -46,8 +54,8 @@ Monorepo with npm workspaces:
 ## API Conventions
 
 - Framework: Fastify with TypeScript
-- Database: SQLite via better-sqlite3
-- Auth: JWT tokens via cookies, API token via Bearer header
+- Database: PostgreSQL via pg (node-postgres)
+- Auth: Auth0 RS256 JWTs via Bearer header, API tokens via Bearer header
 - All mutating routes require authentication
 - Input validation on all POST/PUT endpoints
 - Error shape: `{ error, statusCode }`
