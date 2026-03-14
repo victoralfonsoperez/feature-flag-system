@@ -11,7 +11,7 @@ A self-hosted feature flag system with build-time and runtime flag support, GitH
          │
          ▼
 ┌─────────────────────┐
-│  Flag Service API   │  (Fastify + SQLite)
+│  Flag Service API   │  (Fastify + PostgreSQL)
 │                     │
 │  GET  /flags        │
 │  PUT  /flags/:key   │
@@ -137,7 +137,7 @@ The system uses **JWT-based auth** with two tokens for dashboard users, and per-
 ### Key Design Decisions
 
 - **JWT access + refresh tokens** — short-lived access (5 min) with longer refresh (4h) for balance of security and UX
-- **Refresh token JTI stored in DB** — enables server-side revocation (logout invalidates immediately)
+- **Refresh token JTI stored in PostgreSQL** — enables server-side revocation (logout invalidates immediately)
 - **Transparent refresh in middleware** — no extra round-trip; expired access tokens are silently reissued if refresh is valid
 - **httpOnly cookies** — not accessible to JavaScript, mitigates XSS
 - **sameSite: lax** — prevents CSRF while allowing normal navigation
@@ -149,7 +149,7 @@ The system uses **JWT-based auth** with two tokens for dashboard users, and per-
 
 | Package | Description |
 |---|---|
-| `packages/api` | Flag Service API — Fastify + SQLite CRUD, webhook trigger |
+| `packages/api` | Flag Service API — Fastify + PostgreSQL CRUD, webhook trigger |
 | `packages/dashboard` | Flag Dashboard — React + Tailwind web UI |
 | `packages/sdk` | Client SDK — React provider & hooks for runtime flags |
 
@@ -189,37 +189,46 @@ npm run dev -w packages/dashboard
 
 ### Full stack with Docker Compose
 
-Run the API and dashboard together:
+Run PostgreSQL, the API, and the dashboard together:
 
 ```bash
 docker compose up --build
 ```
 
 This starts:
+- **PostgreSQL** on port 5432 (internal only)
 - **API** at `http://localhost:3100`
 - **Dashboard** at `http://localhost:3200` (nginx serving the built React app, proxying `/api` to the API container)
 
-SQLite data is persisted in a Docker volume (`sqlite-data`), so flags survive container restarts. To start fresh, remove the volume:
+PostgreSQL data is persisted in a Docker volume (`pgdata`), so flags survive container restarts. To start fresh, remove the volume:
 
 ```bash
 docker compose down -v
 ```
 
-### API only
+### Running Tests
 
-Build and run the API as a standalone container:
+API tests require a running PostgreSQL instance. A separate test compose file is provided:
 
 ```bash
-docker build -t feature-flag-api .
-docker run -p 3100:3100 -e JWT_SECRET=your-random-secret feature-flag-api
+docker compose -f docker-compose.test.yml up -d   # start test PostgreSQL on port 5433
+npm test -w packages/api                            # run API tests
+docker compose -f docker-compose.test.yml down      # stop test PostgreSQL
 ```
 
-The API image uses a multi-stage build — native dependencies (`better-sqlite3`) are compiled in a build stage, and only the runtime artifacts are copied to the final slim image.
+Or use the convenience scripts:
+
+```bash
+npm run test:db:up -w packages/api    # start test PostgreSQL
+npm test -w packages/api              # run tests
+npm run test:db:down -w packages/api  # stop test PostgreSQL
+```
 
 ### Environment Variables
 
 | Variable | Description | Required |
 |---|---|---|
+| `DATABASE_URL` | PostgreSQL connection string (e.g. `postgresql://user:pass@host:5432/db`) | Yes |
 | `JWT_SECRET` | Secret key for signing JWTs. Auto-generated in dev if unset. | Yes (prod) |
 | `PORT` | Port to listen on (default: `3100`) | No |
 | `GITHUB_PAT` | GitHub Personal Access Token for webhook dispatch | No |

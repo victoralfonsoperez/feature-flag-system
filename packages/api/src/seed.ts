@@ -1,15 +1,5 @@
 import { initDatabase } from './db.js';
 
-const db = initDatabase();
-
-db.exec(`DELETE FROM audit_log`);
-db.exec(`DELETE FROM flags`);
-
-const insert = db.prepare(
-  `INSERT INTO flags (app_id, key, value, type, environment, description, variants)
-   VALUES (?, ?, ?, ?, ?, ?, ?)`
-);
-
 const flags = [
   // Boolean flags — runtime
   ['default', 'enable_dark_mode', 'true', 'runtime', 'production', 'Toggle dark mode UI', null],
@@ -61,12 +51,24 @@ const flags = [
   ],
 ];
 
-const insertMany = db.transaction(() => {
+async function main() {
+  const db = await initDatabase();
+
+  await db.exec('DELETE FROM audit_log');
+  await db.exec('DELETE FROM flags');
+
+  await db.exec('BEGIN');
   for (const [app_id, key, value, type, environment, description, variants] of flags) {
-    insert.run(app_id, key, value, type, environment, description, variants);
+    await db.run(
+      `INSERT INTO flags (app_id, key, value, type, environment, description, variants)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      app_id, key, value, type, environment, description, variants,
+    );
   }
-});
+  await db.exec('COMMIT');
 
-insertMany();
+  console.log(`Seeded ${flags.length} flags.`);
+  await db.close();
+}
 
-console.log(`Seeded ${flags.length} flags.`);
+main();

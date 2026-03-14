@@ -28,13 +28,10 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
   // Strategy 2: Transparent refresh — access token expired but refresh token valid
   const refreshToken = request.cookies?.refresh_token;
   if (refreshToken) {
-    // Decode ignoring expiry to read claims, then check refresh token hasn't expired
     const payload = decodeJwt(refreshToken);
     if (payload && payload.jti) {
-      // The refresh JWT itself must not be expired
       const now = Math.floor(Date.now() / 1000);
-      if (payload.exp > now && validateRefreshToken(db, payload.jti)) {
-        // Issue a fresh access token
+      if (payload.exp > now && await validateRefreshToken(db, payload.jti)) {
         const newAccessToken = signJwt(
           { sub: payload.sub, email: payload.email, role: payload.role },
           ACCESS_TOKEN_TTL,
@@ -56,18 +53,17 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
     if (prefix.toLowerCase() === 'bearer ') {
       const token = authHeader.substring(7).trim();
       const tokenHash = createHash('sha256').update(token).digest('hex');
-      const row = db
-        .prepare(
-          `SELECT t.id as token_id, t.created_by, u.id, u.email, u.role
-           FROM api_tokens t JOIN users u ON t.created_by = u.id
-           WHERE t.token_hash = ?`,
-        )
-        .get(tokenHash) as
-        | (Pick<ApiTokenRow, 'created_by'> & Pick<UserRow, 'id' | 'email' | 'role'> & { token_id: number })
-        | undefined;
+      const row = await db.getOne<
+        Pick<ApiTokenRow, 'created_by'> & Pick<UserRow, 'id' | 'email' | 'role'> & { token_id: number }
+      >(
+        `SELECT t.id as token_id, t.created_by, u.id, u.email, u.role
+         FROM api_tokens t JOIN users u ON t.created_by = u.id
+         WHERE t.token_hash = ?`,
+        tokenHash,
+      );
 
       if (row) {
-        db.prepare("UPDATE api_tokens SET last_used_at = datetime('now') WHERE id = ?").run(
+        await db.run("UPDATE api_tokens SET last_used_at = NOW() WHERE id = ?",
           row.token_id,
         );
         request.user = { id: row.id, email: row.email, role: row.role, source: 'api-token' };

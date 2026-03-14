@@ -2,32 +2,34 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
-import { initDatabase } from '../db.js';
 import { flagRoutes } from '../routes/flags.js';
 import { authRoutes } from '../routes/auth.js';
 import { auditLogRoutes } from '../routes/audit-log.js';
 import { hashPassword } from '../auth/password.js';
 import { createTokenPair } from '../auth/session.js';
-import type { AuditLogRow } from '../db.js';
+import type { AuditLogRow, Database } from '../db.js';
+import { createTestDb } from './test-helpers.js';
 import '../types.js';
 
 let app: FastifyInstance;
 let authCookie: string;
+let db: Database;
 const TEST_EMAIL = 'test@example.com';
 
-async function createTestUser(app: FastifyInstance): Promise<string> {
+async function createTestUser(db: Database): Promise<string> {
   const passwordHash = await hashPassword('testpass123');
-  const result = app.db
-    .prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)')
-    .run(TEST_EMAIL, passwordHash, 'admin');
-  const userId = result.lastInsertRowid as number;
-  const tokens = createTokenPair(app.db, { id: userId, email: TEST_EMAIL, role: 'admin' });
+  const result = await db.run(
+    'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?) RETURNING id',
+    TEST_EMAIL, passwordHash, 'admin',
+  );
+  const userId = result.rows[0].id as number;
+  const tokens = await createTokenPair(db, { id: userId, email: TEST_EMAIL, role: 'admin' });
   return `access_token=${tokens.accessToken}; refresh_token=${tokens.refreshToken}`;
 }
 
 beforeAll(async () => {
+  db = await createTestDb();
   app = Fastify();
-  const db = initDatabase(':memory:');
   app.decorate('db', db);
   await app.register(cookie);
   await app.register(rateLimit, { max: 1000, timeWindow: '1 minute' });
@@ -36,11 +38,12 @@ beforeAll(async () => {
   await app.register(auditLogRoutes, { prefix: '/api/audit-log' });
   await app.ready();
 
-  authCookie = await createTestUser(app);
+  authCookie = await createTestUser(db);
 });
 
 afterAll(async () => {
   await app.close();
+  await db.close();
 });
 
 describe('GET /api/audit-log', () => {

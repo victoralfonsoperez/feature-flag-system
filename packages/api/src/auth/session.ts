@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import type Database from 'better-sqlite3';
+import type { Database } from '../db.js';
 import { signJwt } from './jwt.js';
 
 const ACCESS_TOKEN_TTL = 5 * 60; // 5 minutes
@@ -10,10 +10,10 @@ export type TokenPair = {
   refreshToken: string;
 };
 
-export function createTokenPair(
-  db: Database.Database,
+export async function createTokenPair(
+  db: Database,
   user: { id: number; email: string; role: string },
-): TokenPair {
+): Promise<TokenPair> {
   const accessToken = signJwt(
     { sub: user.id, email: user.email, role: user.role },
     ACCESS_TOKEN_TTL,
@@ -26,7 +26,7 @@ export function createTokenPair(
   );
 
   const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL * 1000).toISOString();
-  db.prepare('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)').run(
+  await db.run('INSERT INTO sessions (id, user_id, expires_at) VALUES (?, ?, ?)',
     jti,
     user.id,
     expiresAt,
@@ -35,32 +35,30 @@ export function createTokenPair(
   return { accessToken, refreshToken };
 }
 
-export function validateRefreshToken(
-  db: Database.Database,
+export async function validateRefreshToken(
+  db: Database,
   jti: string,
-): boolean {
-  const row = db
-    .prepare('SELECT expires_at FROM sessions WHERE id = ?')
-    .get(jti) as { expires_at: string } | undefined;
+): Promise<boolean> {
+  const row = await db.getOne<{ expires_at: string }>('SELECT expires_at FROM sessions WHERE id = ?', jti);
 
   if (!row) return false;
   if (new Date(row.expires_at) <= new Date()) {
-    db.prepare('DELETE FROM sessions WHERE id = ?').run(jti);
+    await db.run('DELETE FROM sessions WHERE id = ?', jti);
     return false;
   }
   return true;
 }
 
-export function revokeRefreshToken(db: Database.Database, jti: string): void {
-  db.prepare('DELETE FROM sessions WHERE id = ?').run(jti);
+export async function revokeRefreshToken(db: Database, jti: string): Promise<void> {
+  await db.run('DELETE FROM sessions WHERE id = ?', jti);
 }
 
-export function revokeAllUserSessions(db: Database.Database, userId: number): void {
-  db.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
+export async function revokeAllUserSessions(db: Database, userId: number): Promise<void> {
+  await db.run('DELETE FROM sessions WHERE user_id = ?', userId);
 }
 
-export function cleanExpiredSessions(db: Database.Database): void {
-  db.prepare("DELETE FROM sessions WHERE expires_at <= datetime('now')").run();
+export async function cleanExpiredSessions(db: Database): Promise<void> {
+  await db.run("DELETE FROM sessions WHERE expires_at <= NOW()");
 }
 
 export { ACCESS_TOKEN_TTL, REFRESH_TOKEN_TTL };

@@ -24,7 +24,7 @@ export async function flagRoutes(app: FastifyInstance) {
       params.push(env);
     }
 
-    const flags = app.db.prepare(sql).all(...params);
+    const flags = await app.db.getAll(sql, ...params);
     return reply.send(flags);
   });
 
@@ -50,7 +50,7 @@ export async function flagRoutes(app: FastifyInstance) {
       params.push(env);
     }
 
-    const flags = app.db.prepare(sql).all(...params) as FlagRow[];
+    const flags = await app.db.getAll<FlagRow>(sql, ...params);
 
     const resolved: Record<string, string> = {};
     const variants: Record<string, { variant: string; flagKey: string }> = {};
@@ -73,7 +73,7 @@ export async function flagRoutes(app: FastifyInstance) {
     const { app_id } = request.query as { app_id?: string };
     const appId = app_id ?? 'default';
 
-    const flag = app.db.prepare('SELECT * FROM flags WHERE app_id = ? AND key = ?').get(appId, key);
+    const flag = await app.db.getOne('SELECT * FROM flags WHERE app_id = ? AND key = ?', appId, key);
 
     if (!flag) {
       return reply.status(404).send({ error: 'Flag not found', statusCode: 404 });
@@ -108,25 +108,25 @@ export async function flagRoutes(app: FastifyInstance) {
         .send({ error: `environment must be one of: ${allowedEnvironments.join(', ')}`, statusCode: 400 });
     }
 
-    const existing = app.db.prepare('SELECT key FROM flags WHERE app_id = ? AND key = ?').get(appId, key);
+    const existing = await app.db.getOne('SELECT key FROM flags WHERE app_id = ? AND key = ?', appId, key);
     if (existing) {
       return reply.status(409).send({ error: 'Flag key already exists', statusCode: 409 });
     }
 
-    app.db
-      .prepare(
-        `INSERT INTO flags (app_id, key, value, type, environment, description, variants)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
-      )
-      .run(appId, key, value, type, environment ?? 'production', description ?? '', variants ?? null);
+    await app.db.run(
+      `INSERT INTO flags (app_id, key, value, type, environment, description, variants)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      appId, key, value, type, environment ?? 'production', description ?? '', variants ?? null,
+    );
 
-    app.db
-      .prepare('INSERT INTO audit_log (app_id, flag_key, action, new_value, changed_by) VALUES (?, ?, ?, ?, ?)')
-      .run(appId, key, 'created', value, request.user?.email ?? 'unknown');
+    await app.db.run(
+      'INSERT INTO audit_log (app_id, flag_key, action, new_value, changed_by) VALUES (?, ?, ?, ?, ?)',
+      appId, key, 'created', value, request.user?.email ?? 'unknown',
+    );
 
     await sendWebhookNotification(key, 'created', request.user?.email ?? 'unknown');
 
-    const created = app.db.prepare('SELECT * FROM flags WHERE app_id = ? AND key = ?').get(appId, key);
+    const created = await app.db.getOne('SELECT * FROM flags WHERE app_id = ? AND key = ?', appId, key);
     return reply.status(201).send(created);
   });
 
@@ -137,9 +137,7 @@ export async function flagRoutes(app: FastifyInstance) {
     const { app_id } = request.query as { app_id?: string };
     const appId = app_id ?? 'default';
 
-    const existing = app.db.prepare('SELECT * FROM flags WHERE app_id = ? AND key = ?').get(appId, key) as
-      | FlagRow
-      | undefined;
+    const existing = await app.db.getOne<FlagRow>('SELECT * FROM flags WHERE app_id = ? AND key = ?', appId, key);
 
     if (!existing) {
       return reply.status(404).send({ error: 'Flag not found', statusCode: 404 });
@@ -151,19 +149,17 @@ export async function flagRoutes(app: FastifyInstance) {
 
     const changedBy = request.user?.email ?? 'unknown';
 
-    app.db
-      .prepare(
-        `UPDATE flags
-         SET value = ?, description = ?, variants = ?, updated_at = datetime('now'), updated_by = ?
-         WHERE app_id = ? AND key = ?`
-      )
-      .run(newValue, newDescription, newVariants, changedBy, appId, key);
+    await app.db.run(
+      `UPDATE flags
+       SET value = ?, description = ?, variants = ?, updated_at = NOW(), updated_by = ?
+       WHERE app_id = ? AND key = ?`,
+      newValue, newDescription, newVariants, changedBy, appId, key,
+    );
 
-    app.db
-      .prepare(
-        'INSERT INTO audit_log (app_id, flag_key, action, old_value, new_value, changed_by) VALUES (?, ?, ?, ?, ?, ?)'
-      )
-      .run(appId, key, 'updated', existing.value, newValue, changedBy);
+    await app.db.run(
+      'INSERT INTO audit_log (app_id, flag_key, action, old_value, new_value, changed_by) VALUES (?, ?, ?, ?, ?, ?)',
+      appId, key, 'updated', existing.value, newValue, changedBy,
+    );
 
     await sendWebhookNotification(key, 'updated', changedBy);
 
@@ -172,7 +168,7 @@ export async function flagRoutes(app: FastifyInstance) {
       await triggerGitHubRebuild(key);
     }
 
-    const updated = app.db.prepare('SELECT * FROM flags WHERE app_id = ? AND key = ?').get(appId, key);
+    const updated = await app.db.getOne('SELECT * FROM flags WHERE app_id = ? AND key = ?', appId, key);
     return reply.send(updated);
   });
 
@@ -182,19 +178,18 @@ export async function flagRoutes(app: FastifyInstance) {
     const { app_id } = request.query as { app_id?: string };
     const appId = app_id ?? 'default';
 
-    const existing = app.db.prepare('SELECT * FROM flags WHERE app_id = ? AND key = ?').get(appId, key) as
-      | FlagRow
-      | undefined;
+    const existing = await app.db.getOne<FlagRow>('SELECT * FROM flags WHERE app_id = ? AND key = ?', appId, key);
 
     if (!existing) {
       return reply.status(404).send({ error: 'Flag not found', statusCode: 404 });
     }
 
-    app.db.prepare('DELETE FROM flags WHERE app_id = ? AND key = ?').run(appId, key);
+    await app.db.run('DELETE FROM flags WHERE app_id = ? AND key = ?', appId, key);
 
-    app.db
-      .prepare('INSERT INTO audit_log (app_id, flag_key, action, old_value, changed_by) VALUES (?, ?, ?, ?, ?)')
-      .run(appId, key, 'deleted', existing.value, request.user?.email ?? 'unknown');
+    await app.db.run(
+      'INSERT INTO audit_log (app_id, flag_key, action, old_value, changed_by) VALUES (?, ?, ?, ?, ?)',
+      appId, key, 'deleted', existing.value, request.user?.email ?? 'unknown',
+    );
 
     await sendWebhookNotification(key, 'deleted', request.user?.email ?? 'unknown');
 

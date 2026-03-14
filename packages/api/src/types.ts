@@ -1,8 +1,8 @@
-import type Database from 'better-sqlite3';
+import type { Database } from './db.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
-    db: Database.Database;
+    db: Database;
   }
   interface FastifyRequest {
     user?: { id: number; email: string; role: string; source: 'session' | 'api-token' };

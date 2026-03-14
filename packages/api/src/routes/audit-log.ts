@@ -34,7 +34,7 @@ export async function auditLogRoutes(app: FastifyInstance) {
     sql += ' ORDER BY id DESC LIMIT ? OFFSET ?';
     params.push(queryLimit, queryOffset);
 
-    const entries = app.db.prepare(sql).all(...params) as AuditLogRow[];
+    const entries = await app.db.getAll<AuditLogRow>(sql, ...params);
     return reply.send(entries);
   });
 }

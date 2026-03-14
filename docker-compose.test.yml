@@ -1,0 +1,16 @@
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: kanary_test
+      POSTGRES_PASSWORD: kanary_test
+      POSTGRES_DB: kanary_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kanary_test"]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+    tmpfs:
+      - /var/lib/postgresql/data

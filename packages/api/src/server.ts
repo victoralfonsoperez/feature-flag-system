@@ -37,8 +37,13 @@ async function start() {
   await app.register(cookie);
   await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
 
-  const db = initDatabase();
+  const db = await initDatabase();
   app.decorate('db', db);
+
+  // Graceful shutdown: close the database pool
+  app.addHook('onClose', async () => {
+    await db.close();
+  });
 
   app.setErrorHandler((error: { statusCode?: number; code?: string; message?: string }, _request, reply) => {
     if (error.statusCode === 400 && error.code === 'FST_ERR_CTP_INVALID_MEDIA_TYPE') {

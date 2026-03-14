@@ -57,8 +57,8 @@ export async function authRoutes(app: FastifyInstance) {
 
   // GET /api/auth/status — check if setup is needed
   app.get('/status', async (_request: FastifyRequest, reply: FastifyReply) => {
-    const count = app.db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
-    return reply.send({ setupRequired: count.count === 0 });
+    const count = await app.db.getOne<{ count: string }>('SELECT COUNT(*) as count FROM users');
+    return reply.send({ setupRequired: Number(count!.count) === 0 });
   });
 
   // POST /api/auth/setup — create first admin user
@@ -69,20 +69,21 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'email and password are required', statusCode: 400 });
     }
 
-    const count = app.db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
-    if (count.count > 0) {
+    const count = await app.db.getOne<{ count: string }>('SELECT COUNT(*) as count FROM users');
+    if (Number(count!.count) > 0) {
       return reply.status(403).send({ error: 'Setup already completed', statusCode: 403 });
     }
 
     const passwordHash = await hashPassword(password);
-    const result = app.db
-      .prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)')
-      .run(email, passwordHash, 'admin');
+    const result = await app.db.run(
+      'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?) RETURNING id',
+      email, passwordHash, 'admin',
+    );
 
-    const userId = result.lastInsertRowid as number;
+    const userId = result.rows[0].id as number;
 
-    cleanExpiredSessions(app.db);
-    const tokens = createTokenPair(app.db, { id: userId, email, role: 'admin' });
+    await cleanExpiredSessions(app.db);
+    const tokens = await createTokenPair(app.db, { id: userId, email, role: 'admin' });
 
     return setAuthCookies(reply, tokens)
       .send({ user: { id: userId, email, role: 'admin' } });
@@ -96,16 +97,14 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'email and password are required', statusCode: 400 });
     }
 
-    const user = app.db.prepare('SELECT * FROM users WHERE email = ?').get(email) as
-      | UserRow
-      | undefined;
+    const user = await app.db.getOne<UserRow>('SELECT * FROM users WHERE email = ?', email);
 
     if (!user || !(await verifyPassword(password, user.password_hash))) {
       return reply.status(401).send({ error: 'Invalid credentials', statusCode: 401 });
     }
 
-    cleanExpiredSessions(app.db);
-    const tokens = createTokenPair(app.db, { id: user.id, email: user.email, role: user.role });
+    await cleanExpiredSessions(app.db);
+    const tokens = await createTokenPair(app.db, { id: user.id, email: user.email, role: user.role });
 
     return setAuthCookies(reply, tokens)
       .send({ user: { id: user.id, email: user.email, role: user.role } });
@@ -123,7 +122,7 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(401).send({ error: 'Invalid refresh token', statusCode: 401 });
     }
 
-    if (!validateRefreshToken(app.db, payload.jti)) {
+    if (!(await validateRefreshToken(app.db, payload.jti))) {
       return reply.status(401).send({ error: 'Refresh token revoked or expired', statusCode: 401 });
     }
 
@@ -152,7 +151,7 @@ export async function authRoutes(app: FastifyInstance) {
       if (refreshToken) {
         const payload = decodeJwt(refreshToken);
         if (payload?.jti) {
-          revokeRefreshToken(app.db, payload.jti);
+          await revokeRefreshToken(app.db, payload.jti);
         }
       }
 

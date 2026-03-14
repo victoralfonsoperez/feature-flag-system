@@ -2,21 +2,23 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
-import { initDatabase } from '../db.js';
 import { authRoutes } from '../routes/auth.js';
 import { userRoutes } from '../routes/users.js';
 import { hashPassword } from '../auth/password.js';
 import { createTokenPair } from '../auth/session.js';
+import type { Database } from '../db.js';
+import { createTestDb } from './test-helpers.js';
 import '../types.js';
 
 let app: FastifyInstance;
 let adminCookie: string;
 let adminUserId: number;
 let viewerCookie: string;
+let db: Database;
 
 beforeAll(async () => {
+  db = await createTestDb();
   app = Fastify();
-  const db = initDatabase(':memory:');
   app.decorate('db', db);
   await app.register(cookie);
   await app.register(rateLimit, { max: 1000, timeWindow: '1 minute' });
@@ -26,25 +28,28 @@ beforeAll(async () => {
 
   // Create an admin user
   const adminHash = await hashPassword('adminpass');
-  const adminResult = db
-    .prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)')
-    .run('admin@test.com', adminHash, 'admin');
-  adminUserId = adminResult.lastInsertRowid as number;
-  const adminTokens = createTokenPair(db, { id: adminUserId, email: 'admin@test.com', role: 'admin' });
+  const adminResult = await db.run(
+    'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?) RETURNING id',
+    'admin@test.com', adminHash, 'admin',
+  );
+  adminUserId = adminResult.rows[0].id as number;
+  const adminTokens = await createTokenPair(db, { id: adminUserId, email: 'admin@test.com', role: 'admin' });
   adminCookie = `access_token=${adminTokens.accessToken}; refresh_token=${adminTokens.refreshToken}`;
 
   // Create a viewer user
   const viewerHash = await hashPassword('viewerpass');
-  const viewerResult = db
-    .prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)')
-    .run('viewer@test.com', viewerHash, 'viewer');
-  const viewerId = viewerResult.lastInsertRowid as number;
-  const viewerTokens = createTokenPair(db, { id: viewerId, email: 'viewer@test.com', role: 'viewer' });
+  const viewerResult = await db.run(
+    'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?) RETURNING id',
+    'viewer@test.com', viewerHash, 'viewer',
+  );
+  const viewerId = viewerResult.rows[0].id as number;
+  const viewerTokens = await createTokenPair(db, { id: viewerId, email: 'viewer@test.com', role: 'viewer' });
   viewerCookie = `access_token=${viewerTokens.accessToken}; refresh_token=${viewerTokens.refreshToken}`;
 });
 
 afterAll(async () => {
   await app.close();
+  await db.close();
 });
 
 describe('GET /api/users', () => {

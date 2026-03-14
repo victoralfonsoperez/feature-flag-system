@@ -13,11 +13,10 @@ export async function tokenRoutes(app: FastifyInstance) {
 
   // GET /api/tokens — list current user's tokens
   app.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
-    const tokens = app.db
-      .prepare(
-        'SELECT id, name, created_at, last_used_at FROM api_tokens WHERE created_by = ? ORDER BY created_at DESC',
-      )
-      .all(request.user!.id) as Pick<ApiTokenRow, 'id' | 'name' | 'created_at' | 'last_used_at'>[];
+    const tokens = await app.db.getAll<Pick<ApiTokenRow, 'id' | 'name' | 'created_at' | 'last_used_at'>>(
+      'SELECT id, name, created_at, last_used_at FROM api_tokens WHERE created_by = ? ORDER BY created_at DESC',
+      request.user!.id,
+    );
 
     return reply.send(tokens);
   });
@@ -33,12 +32,13 @@ export async function tokenRoutes(app: FastifyInstance) {
     const plaintext = randomBytes(32).toString('hex');
     const tokenHash = createHash('sha256').update(plaintext).digest('hex');
 
-    const result = app.db
-      .prepare('INSERT INTO api_tokens (name, token_hash, created_by) VALUES (?, ?, ?)')
-      .run(name, tokenHash, request.user!.id);
+    const result = await app.db.run(
+      'INSERT INTO api_tokens (name, token_hash, created_by) VALUES (?, ?, ?) RETURNING id',
+      name, tokenHash, request.user!.id,
+    );
 
     return reply.status(201).send({
-      id: result.lastInsertRowid,
+      id: result.rows[0].id,
       name,
       token: plaintext,
     });
@@ -48,11 +48,12 @@ export async function tokenRoutes(app: FastifyInstance) {
   app.delete('/:id', async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
 
-    const result = app.db
-      .prepare('DELETE FROM api_tokens WHERE id = ? AND created_by = ?')
-      .run(Number(id), request.user!.id);
+    const result = await app.db.run(
+      'DELETE FROM api_tokens WHERE id = ? AND created_by = ?',
+      Number(id), request.user!.id,
+    );
 
-    if (result.changes === 0) {
+    if (result.rowCount === 0) {
       return reply.status(404).send({ error: 'Token not found', statusCode: 404 });
     }
 

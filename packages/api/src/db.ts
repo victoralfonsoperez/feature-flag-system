@@ -1,95 +1,101 @@
-import Database from 'better-sqlite3';
-import path from 'node:path';
+import pg from 'pg';
+import { readFileSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-export function initDatabase(dbPath?: string): Database.Database {
-  const resolvedPath = dbPath ?? path.join(process.cwd(), 'flags.db');
-  const db = new Database(resolvedPath);
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
-  db.pragma('journal_mode = WAL');
-  db.pragma('foreign_keys = ON');
+export type DbResult<T = Record<string, unknown>> = {
+  rows: T[];
+  rowCount: number;
+};
 
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS flags (
-      app_id TEXT NOT NULL DEFAULT 'default',
-      key TEXT NOT NULL,
-      value TEXT NOT NULL,
-      type TEXT NOT NULL CHECK (type IN ('build-time', 'runtime')),
-      environment TEXT NOT NULL DEFAULT 'production',
-      description TEXT DEFAULT '',
-      variants TEXT DEFAULT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_by TEXT DEFAULT 'system',
-      PRIMARY KEY (app_id, key)
-    );
+export interface Database {
+  query<T = Record<string, unknown>>(sql: string, ...params: unknown[]): Promise<DbResult<T>>;
+  getOne<T = Record<string, unknown>>(sql: string, ...params: unknown[]): Promise<T | undefined>;
+  getAll<T = Record<string, unknown>>(sql: string, ...params: unknown[]): Promise<T[]>;
+  run(sql: string, ...params: unknown[]): Promise<DbResult>;
+  exec(sql: string): Promise<void>;
+  close(): Promise<void>;
+}
 
-    CREATE TABLE IF NOT EXISTS audit_log (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      app_id TEXT NOT NULL DEFAULT 'default',
-      flag_key TEXT NOT NULL,
-      action TEXT NOT NULL,
-      old_value TEXT,
-      new_value TEXT,
-      changed_by TEXT DEFAULT 'system',
-      changed_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
+/**
+ * Convert `?` positional params to `$1, $2, ...` for PostgreSQL.
+ * Skips `?` inside single-quoted strings.
+ */
+function convertParams(sql: string): string {
+  let idx = 0;
+  let inString = false;
+  let result = '';
+  for (let i = 0; i < sql.length; i++) {
+    const ch = sql[i];
+    if (ch === "'" && !inString) {
+      inString = true;
+      result += ch;
+    } else if (ch === "'" && inString) {
+      // Check for escaped quote ''
+      if (i + 1 < sql.length && sql[i + 1] === "'") {
+        result += "''";
+        i++;
+      } else {
+        inString = false;
+        result += ch;
+      }
+    } else if (ch === '?' && !inString) {
+      idx++;
+      result += `$${idx}`;
+    } else {
+      result += ch;
+    }
+  }
+  return result;
+}
 
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('admin', 'viewer')),
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
+export async function initDatabase(connectionString?: string): Promise<Database> {
+  const connStr = connectionString ?? process.env.DATABASE_URL ?? 'postgresql://kanary:kanary@localhost:5432/kanary';
 
-    CREATE TABLE IF NOT EXISTS sessions (
-      id TEXT PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      expires_at TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
+  const pool = new pg.Pool({ connectionString: connStr });
 
-    CREATE TABLE IF NOT EXISTS api_tokens (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      token_hash TEXT UNIQUE NOT NULL,
-      created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      last_used_at TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-  `);
-
-  // Migration: add app_id to existing flags table if it uses the old schema
-  const flagsInfo = db.prepare("PRAGMA table_info(flags)").all() as { name: string }[];
-  const hasAppId = flagsInfo.some((col) => col.name === 'app_id');
-  if (!hasAppId) {
-    db.exec(`
-      ALTER TABLE flags RENAME TO flags_old;
-      CREATE TABLE flags (
-        app_id TEXT NOT NULL DEFAULT 'default',
-        key TEXT NOT NULL,
-        value TEXT NOT NULL,
-        type TEXT NOT NULL CHECK (type IN ('build-time', 'runtime')),
-        environment TEXT NOT NULL DEFAULT 'production',
-        description TEXT DEFAULT '',
-        variants TEXT DEFAULT NULL,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-        updated_by TEXT DEFAULT 'system',
-        PRIMARY KEY (app_id, key)
-      );
-      INSERT INTO flags (key, value, type, environment, description, variants, created_at, updated_at, updated_by)
-        SELECT key, value, type, environment, description, variants, created_at, updated_at, updated_by FROM flags_old;
-      DROP TABLE flags_old;
-    `);
+  // Test connection
+  const client = await pool.connect();
+  try {
+    // Run migration
+    const migrationPath = resolve(__dirname, 'migrations', '001_init.sql');
+    const migrationSql = readFileSync(migrationPath, 'utf-8');
+    await client.query(migrationSql);
+  } finally {
+    client.release();
   }
 
-  // Migration: add app_id to existing audit_log table if missing
-  const auditInfo = db.prepare("PRAGMA table_info(audit_log)").all() as { name: string }[];
-  const auditHasAppId = auditInfo.some((col) => col.name === 'app_id');
-  if (!auditHasAppId) {
-    db.exec(`ALTER TABLE audit_log ADD COLUMN app_id TEXT NOT NULL DEFAULT 'default'`);
-  }
+  const db: Database = {
+    async query<T = Record<string, unknown>>(sql: string, ...params: unknown[]): Promise<DbResult<T>> {
+      const pgSql = convertParams(sql);
+      const result = await pool.query(pgSql, params);
+      return { rows: result.rows as T[], rowCount: result.rowCount ?? 0 };
+    },
+
+    async getOne<T = Record<string, unknown>>(sql: string, ...params: unknown[]): Promise<T | undefined> {
+      const { rows } = await db.query<T>(sql, ...params);
+      return rows[0];
+    },
+
+    async getAll<T = Record<string, unknown>>(sql: string, ...params: unknown[]): Promise<T[]> {
+      const { rows } = await db.query<T>(sql, ...params);
+      return rows;
+    },
+
+    async run(sql: string, ...params: unknown[]): Promise<DbResult> {
+      return db.query(sql, ...params);
+    },
+
+    async exec(sql: string): Promise<void> {
+      await pool.query(sql);
+    },
+
+    async close(): Promise<void> {
+      await pool.end();
+    },
+  };
 
   return db;
 }
