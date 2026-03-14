@@ -2,10 +2,10 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
-import { authRoutes } from '../routes/auth.js';
-import type { Database } from '../db.js';
-import { createTestDb } from './test-helpers.js';
-import '../types.js';
+import { authRoutes } from '../routes/auth';
+import type { Database } from '../db';
+import { createTestDb } from './test-helpers';
+import '../types';
 
 let app: FastifyInstance;
 let db: Database;

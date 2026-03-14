@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { signJwt, verifyJwt, decodeJwt } from '../auth/jwt.js';
+import { signJwt, verifyJwt, decodeJwt } from '../auth/jwt';
 
 describe('jwt', () => {
   afterEach(() => {

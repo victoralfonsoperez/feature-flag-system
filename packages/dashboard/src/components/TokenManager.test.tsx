@@ -60,7 +60,7 @@ describe('TokenManager', () => {
     fireEvent.click(screen.getByText('Create Token'));
 
     await waitFor(() => {
-      expect(screen.getByText('new-secret-token')).toBeDefined();
+      expect(screen.getByText('tok123')).toBeDefined();
       expect(screen.getByText(/copy it now/i)).toBeDefined();
     });
   });

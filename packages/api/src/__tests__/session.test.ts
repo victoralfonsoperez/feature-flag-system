@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createTokenPair, validateRefreshToken, revokeRefreshToken, revokeAllUserSessions } from '../auth/session.js';
+import { createTokenPair, validateRefreshToken, revokeRefreshToken, revokeAllUserSessions } from '../auth/session';
 import type { Database } from '../db.js';
 
 function createMockDb(overrides: Partial<Database> = {}): Database {

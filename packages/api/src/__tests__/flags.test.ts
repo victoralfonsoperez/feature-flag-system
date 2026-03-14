@@ -2,12 +2,12 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
-import { flagRoutes } from '../routes/flags.js';
-import { authRoutes } from '../routes/auth.js';
-import { hashPassword } from '../auth/password.js';
-import { createTokenPair } from '../auth/session.js';
-import type { FlagRow, Database } from '../db.js';
-import { createTestDb } from './test-helpers.js';
+import { flagRoutes } from '../routes/flags';
+import { authRoutes } from '../routes/auth';
+import { hashPassword } from '../auth/password';
+import { createTokenPair } from '../auth/session';
+import type { FlagRow, Database } from '../db';
+import { createTestDb } from './test-helpers';
 import '../types.js';
 
 let app: FastifyInstance;
