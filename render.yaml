@@ -18,6 +18,8 @@ services:
         value: "3100"
       - key: CORS_ORIGIN
         sync: false
+      - key: NODE_OPTIONS
+        value: "--dns-result-order=ipv4first"
       - key: NODE_ENV
         value: production
       - key: LOG_LEVEL

@@ -17,5 +17,6 @@ COPY --from=build /app/package.json /app/package-lock.json* ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/packages/api ./packages/api
 
+ENV NODE_OPTIONS="--dns-result-order=ipv4first"
 EXPOSE 3100
 CMD ["node", "packages/api/dist/server.js"]
