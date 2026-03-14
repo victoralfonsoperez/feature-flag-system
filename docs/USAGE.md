@@ -9,7 +9,7 @@ The Feature Flag System supports two scenarios:
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                     Flag Service API                            │
-│                   (Fastify + SQLite)                            │
+│                 (Fastify + PostgreSQL)                           │
 │                                                                 │
 │   GET /api/flags/resolve?type=runtime&env=production            │
 │   GET /api/flags/resolve?type=build-time&env=production         │
@@ -31,7 +31,7 @@ The Feature Flag System supports two scenarios:
 
 ## Prerequisites
 
-1. **Clone and start the system:**
+1. **Deploy or run locally** — see [Deployment Guide](./DEPLOYMENT.md) for production setup (Supabase + Render + Netlify), or run locally:
 
    ```bash
    git clone <your-repo-url>
@@ -41,13 +41,9 @@ The Feature Flag System supports two scenarios:
    npm run dev
    ```
 
-2. **Create the admin account** — visit the dashboard (default `http://localhost:5173`) and complete the setup form. Or use the CLI:
+2. **Log in via Auth0** — visit the dashboard (locally at `http://localhost:5173`, or the deployed URL). You'll be redirected to Auth0 to sign in or create an account.
 
-   ```bash
-   npm run seed:admin -w packages/api -- admin@example.com yourpassword
-   ```
-
-3. **Create an API token** — log into the dashboard, navigate to Settings, and create an API token. Copy the token immediately; it is only shown once.
+3. **Create an API token** — once logged in, navigate to Settings and create an API token. Copy the token immediately; it is only shown once.
 
 4. **Create some flags** — use the dashboard or API to create flags (see [Managing Flags via Dashboard](#managing-flags-via-dashboard) or [API Reference](#api-reference-quick)).
 

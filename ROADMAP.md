@@ -253,13 +253,13 @@ Make it reliable enough to run in production.
 - [x] Create Netlify site linked to the repo (`packages/dashboard`)
 - [x] Configure build command (`npm run build -w packages/dashboard`) and publish directory (`packages/dashboard/dist`)
 - [x] Set `VITE_API_URL` env var pointing to the Render backend URL
-- [ ] Add `_redirects` or `netlify.toml` for SPA routing (`/* → /index.html`)
+- [x] Add `_redirects` or `netlify.toml` for SPA routing (`/* → /index.html`)
 - [x] Verify dashboard loads and connects to the deployed API
 
 #### End-to-end verification
-- [ ] Run full smoke test: setup admin → login → create flag → toggle → edit → delete → audit log
-- [ ] Verify SDK `/resolve` endpoint works from an external origin
-- [ ] Write deployment documentation (`docs/DEPLOYMENT.md`) covering Supabase, Render, and Netlify setup
+- [x] Run full smoke test: setup admin → login → create flag → toggle → edit → delete → audit log
+- [x] Verify SDK `/resolve` endpoint works from an external origin
+- [x] Write deployment documentation (`docs/DEPLOYMENT.md`) covering Supabase, Render, and Netlify setup
 
 **Milestone:** System is deployed and serving real traffic on Supabase + Render + Netlify.
 
@@ -292,9 +292,9 @@ Nice-to-haves that improve the day-to-day experience.
 - [x] Write migration and tests for multi-app scoping
 
 #### Release
-- [ ] Write project documentation and usage guide (`docs/USAGE.md` — update existing)
-- [ ] Review and update README with final architecture and setup instructions
-- [ ] Tag `v1.0.0` release
+- [x] Write project documentation and usage guide (`docs/USAGE.md` — update existing)
+- [x] Review and update README with final architecture and setup instructions
+- [x] Tag `v1.0.0` release
 
 **Milestone:** v1.0 shipped.
 
