@@ -57,8 +57,16 @@ The React SDK fetches flags from the API on page load and provides them via Reac
 
 ### Install
 
+The SDK is published to GitHub Packages. Add a `.npmrc` file to your project to configure the registry:
+
+```
+@victoralfonsoperez:registry=https://npm.pkg.github.com
+```
+
+Then install:
+
 ```bash
-npm install @feature-flags/sdk
+npm install @victoralfonsoperez/feature-flags-sdk
 ```
 
 > The SDK requires `react >= 18` as a peer dependency.
@@ -66,7 +74,7 @@ npm install @feature-flags/sdk
 ### Wrap your app with `FlagProvider`
 
 ```tsx
-import { FlagProvider } from '@feature-flags/sdk';
+import { FlagProvider } from '@victoralfonsoperez/feature-flags-sdk';
 
 function App() {
   return (
@@ -101,7 +109,7 @@ The provider renders nothing (`null`) until flags are loaded, then renders child
 Returns a single flag value by key, with an optional fallback.
 
 ```tsx
-import { useFlag } from '@feature-flags/sdk';
+import { useFlag } from '@victoralfonsoperez/feature-flags-sdk';
 
 function CheckoutButton() {
   const checkoutVersion = useFlag('checkout_version', 'v1');
@@ -122,7 +130,7 @@ function CheckoutButton() {
 Returns all resolved flags as a key-value object.
 
 ```tsx
-import { useFlags } from '@feature-flags/sdk';
+import { useFlags } from '@victoralfonsoperez/feature-flags-sdk';
 
 function DebugPanel() {
   const flags = useFlags();

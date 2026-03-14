@@ -1,7 +1,8 @@
 {
-  "name": "@feature-flags/sdk",
-  "version": "0.1.0",
+  "name": "@victoralfonsoperez/feature-flags-sdk",
+  "version": "0.1.1",
   "type": "module",
+  "description": "React SDK for the Kanary feature flag system",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -9,6 +10,17 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     }
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/victoralfonsoperez/feature-flag-system.git",
+    "directory": "packages/sdk"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   },
   "scripts": {
     "build": "tsc",
