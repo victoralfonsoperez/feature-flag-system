@@ -13,9 +13,16 @@ type AuthContextType = {
   isLoading: boolean;
   login: () => void;
   logout: () => void;
+  auth0Domain: string;
+  auth0ClientId: string;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const env = (import.meta as any).env ?? {};
+const auth0Domain = env.VITE_AUTH0_DOMAIN || '';
+const auth0ClientId = env.VITE_AUTH0_CLIENT_ID || '';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const {
@@ -46,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => { auth0Logout({ logoutParams: { returnTo: window.location.origin } }); };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, logout, auth0Domain, auth0ClientId }}>
       {children}
     </AuthContext.Provider>
   );

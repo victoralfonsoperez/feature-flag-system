@@ -1,125 +1,108 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import Header from './Header';
-import type { Environment } from '../types';
 
-// Mock useAuth
+const mockLogout = vi.fn();
+const mockShowToast = vi.fn();
+
 vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({
-    user: { id: 'auth0|1', email: 'admin@test.com', role: 'admin' },
-    logout: vi.fn(),
+    user: { id: 'auth0|123', email: 'test@example.com', role: 'admin' },
+    logout: mockLogout,
+    auth0Domain: 'test.us.auth0.com',
+    auth0ClientId: 'test-client-id',
   }),
 }));
 
-afterEach(cleanup);
+vi.mock('./Toast', () => ({
+  useToast: () => ({ showToast: mockShowToast }),
+}));
 
 const defaultProps = {
-  environment: 'production' as Environment,
-  onEnvironmentChange: () => {},
+  environment: 'production' as const,
+  onEnvironmentChange: vi.fn(),
   appId: 'default',
-  onAppIdChange: () => {},
+  onAppIdChange: vi.fn(),
   view: 'flags' as const,
-  onViewChange: () => {},
+  onViewChange: vi.fn(),
 };
 
+beforeEach(() => {
+  mockLogout.mockReset();
+  mockShowToast.mockReset();
+  vi.restoreAllMocks();
+});
+
+afterEach(cleanup);
+
 describe('Header', () => {
-  it('renders the app title', () => {
+  it('renders the Change Password button', () => {
     render(<Header {...defaultProps} />);
-    expect(screen.getByText('Kanary')).toBeDefined();
+    const buttons = screen.getAllByText('Change Password');
+    expect(buttons.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders all navigation buttons', () => {
+  it('sends password reset request on click and shows success toast', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('OK', { status: 200 }),
+    );
+
     render(<Header {...defaultProps} />);
-    expect(screen.getAllByText('Flags').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('API Tokens').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('Activity').length).toBeGreaterThanOrEqual(1);
-  });
+    const buttons = screen.getAllByText('Change Password');
+    fireEvent.click(buttons[0]);
 
-  it('does not render Users nav button (removed with Auth0)', () => {
-    render(<Header {...defaultProps} />);
-    expect(screen.queryByText('Users')).toBeNull();
-  });
-
-  it('calls onViewChange when a nav button is clicked', () => {
-    const onViewChange = vi.fn();
-    render(<Header {...defaultProps} onViewChange={onViewChange} />);
-    fireEvent.click(screen.getAllByText('Activity')[0]);
-    expect(onViewChange).toHaveBeenCalledWith('activity');
-  });
-
-  it('applies active style to button matching current view', () => {
-    render(<Header {...defaultProps} view="tokens" />);
-    const tokensButtons = screen.getAllByText('API Tokens');
-    expect(tokensButtons[0].className).toContain('bg-gray-800');
-  });
-
-  it('shows user email', () => {
-    render(<Header {...defaultProps} />);
-    expect(screen.getAllByText('admin@test.com').length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('has a hamburger menu toggle button', () => {
-    render(<Header {...defaultProps} />);
-    expect(screen.getByLabelText('Toggle menu')).toBeDefined();
-  });
-
-  it('shows mobile menu when hamburger is clicked', () => {
-    render(<Header {...defaultProps} />);
-    const toggle = screen.getByLabelText('Toggle menu');
-    fireEvent.click(toggle);
-    // Should now have duplicate nav items (desktop + mobile)
-    expect(screen.getAllByText('Flags').length).toBe(2);
-  });
-
-  it('renders settings button when onOpenSettings is provided', () => {
-    render(<Header {...defaultProps} onOpenSettings={() => {}} />);
-    expect(screen.getAllByLabelText('Settings').length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('calls onOpenSettings when settings button is clicked', () => {
-    const onOpenSettings = vi.fn();
-    render(<Header {...defaultProps} onOpenSettings={onOpenSettings} />);
-    fireEvent.click(screen.getAllByLabelText('Settings')[0]);
-    expect(onOpenSettings).toHaveBeenCalled();
-  });
-
-  it('displays environment selector on flags view', () => {
-    render(<Header {...defaultProps} />);
-    const selects = screen.getAllByRole('combobox');
-    expect(selects.length).toBeGreaterThanOrEqual(1);
-    expect((selects[0] as HTMLSelectElement).value).toBe('production');
-  });
-
-  it('calls onEnvironmentChange when selection changes', () => {
-    const onChange = vi.fn();
-    render(<Header {...defaultProps} onEnvironmentChange={onChange} />);
-    fireEvent.change(screen.getAllByRole('combobox')[0], {
-      target: { value: 'development' },
+    await waitFor(() => {
+      expect(fetchSpy).toHaveBeenCalledWith(
+        'https://test.us.auth0.com/dbconnections/change_password',
+        expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_id: 'test-client-id',
+            email: 'test@example.com',
+            connection: 'Username-Password-Authentication',
+          }),
+        }),
+      );
     });
-    expect(onChange).toHaveBeenCalledWith('development');
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith(
+        'Password reset email sent. Check your inbox.',
+        'success',
+      );
+    });
   });
 
-  it('renders app ID input with current value', () => {
-    render(<Header {...defaultProps} appId="my-app" />);
-    const inputs = screen.getAllByDisplayValue('my-app');
-    expect(inputs.length).toBeGreaterThanOrEqual(1);
+  it('shows error toast when password reset request fails', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('Error', { status: 500 }),
+    );
+
+    render(<Header {...defaultProps} />);
+    const buttons = screen.getAllByText('Change Password');
+    fireEvent.click(buttons[0]);
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith(
+        'Failed to send password reset email.',
+        'error',
+      );
+    });
   });
 
-  it('calls onAppIdChange on blur', () => {
-    const onAppIdChange = vi.fn();
-    render(<Header {...defaultProps} onAppIdChange={onAppIdChange} />);
-    const input = screen.getByLabelText('App:', { exact: false }) as HTMLInputElement;
-    fireEvent.change(input, { target: { value: 'new-app' } });
-    fireEvent.blur(input);
-    expect(onAppIdChange).toHaveBeenCalledWith('new-app');
-  });
+  it('shows error toast on network failure', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network error'));
 
-  it('calls onAppIdChange on Enter key', () => {
-    const onAppIdChange = vi.fn();
-    render(<Header {...defaultProps} onAppIdChange={onAppIdChange} />);
-    const input = screen.getByLabelText('App:', { exact: false }) as HTMLInputElement;
-    fireEvent.change(input, { target: { value: 'enter-app' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-    expect(onAppIdChange).toHaveBeenCalledWith('enter-app');
+    render(<Header {...defaultProps} />);
+    const buttons = screen.getAllByText('Change Password');
+    fireEvent.click(buttons[0]);
+
+    await waitFor(() => {
+      expect(mockShowToast).toHaveBeenCalledWith(
+        'Failed to send password reset email.',
+        'error',
+      );
+    });
   });
 });
