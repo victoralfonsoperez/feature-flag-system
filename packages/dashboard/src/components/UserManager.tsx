@@ -137,7 +137,7 @@ export default function UserManager() {
               id="user-role"
               value={role}
               onChange={(e) => setRole(e.target.value as 'admin' | 'viewer')}
-              className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
             >
               <option value="viewer">Viewer</option>
               <option value="admin">Admin</option>
@@ -146,7 +146,7 @@ export default function UserManager() {
         </div>
         <button
           type="submit"
-          className="bg-blue-600 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-blue-700"
+          className="bg-yellow-500 text-gray-900 rounded-md px-4 py-2 text-sm font-medium hover:bg-yellow-600"
         >
           Create User
         </button>

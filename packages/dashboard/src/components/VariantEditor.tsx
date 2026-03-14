@@ -46,7 +46,7 @@ export default function VariantEditor({ variants, onChange, errors }: VariantEdi
             aria-label={`Variant ${index + 1} name`}
             value={variant.name}
             onChange={(e) => updateVariant(index, 'name', e.target.value)}
-            className="flex-1 border border-gray-600 rounded-md px-2 py-1 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="flex-1 border border-gray-600 rounded-md px-2 py-1 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
           />
           <input
             type="text"
@@ -54,7 +54,7 @@ export default function VariantEditor({ variants, onChange, errors }: VariantEdi
             aria-label={`Variant ${index + 1} value`}
             value={variant.value}
             onChange={(e) => updateVariant(index, 'value', e.target.value)}
-            className="flex-1 border border-gray-600 rounded-md px-2 py-1 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="flex-1 border border-gray-600 rounded-md px-2 py-1 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
           />
           <input
             type="number"
@@ -62,7 +62,7 @@ export default function VariantEditor({ variants, onChange, errors }: VariantEdi
             aria-label={`Variant ${index + 1} weight`}
             value={variant.weight}
             onChange={(e) => updateVariant(index, 'weight', e.target.value)}
-            className="w-20 border border-gray-600 rounded-md px-2 py-1 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-20 border border-gray-600 rounded-md px-2 py-1 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
           />
           <button
             type="button"
@@ -95,7 +95,7 @@ export default function VariantEditor({ variants, onChange, errors }: VariantEdi
       <button
         type="button"
         onClick={addVariant}
-        className="text-sm text-blue-400 hover:text-blue-300"
+        className="text-sm text-yellow-400 hover:text-yellow-300"
       >
         + Add Variant
       </button>

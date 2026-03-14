@@ -43,7 +43,7 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: () =>
       aria-checked={checked}
       onClick={onChange}
       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
-        checked ? 'bg-blue-600' : 'bg-gray-600'
+        checked ? 'bg-yellow-500' : 'bg-gray-600'
       }`}
     >
       <span
@@ -61,7 +61,7 @@ function VariantBadge({ variants }: { variants: string | null }) {
     const parsed = JSON.parse(variants);
     if (!Array.isArray(parsed) || parsed.length === 0) return null;
     return (
-      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-900/40 text-blue-300">
+      <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-900/40 text-yellow-300">
         {parsed.length} variant{parsed.length !== 1 ? 's' : ''}
       </span>
     );
@@ -76,7 +76,7 @@ function TypeBadge({ type }: { type: string }) {
       className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${
         type === 'build-time'
           ? 'bg-amber-900/40 text-amber-300'
-          : 'bg-blue-900/40 text-blue-300'
+          : 'bg-yellow-900/40 text-yellow-300'
       }`}
     >
       {type}
@@ -119,7 +119,7 @@ function FlagCard({ flag, onToggle, onEdit, onDelete, onViewHistory, onRevert }:
       <div className="flex gap-2">
         <button onClick={() => onViewHistory(flag.key)} className="text-xs px-2.5 py-1 rounded-md bg-gray-800 text-gray-300 hover:bg-gray-700">History</button>
         {onRevert && <button onClick={() => onRevert(flag)} className="text-xs px-2.5 py-1 rounded-md bg-amber-900/40 text-amber-300 hover:bg-amber-900/60">Revert</button>}
-        <button onClick={() => onEdit(flag)} className="text-xs px-2.5 py-1 rounded-md bg-blue-900/40 text-blue-300 hover:bg-blue-900/60">Edit</button>
+        <button onClick={() => onEdit(flag)} className="text-xs px-2.5 py-1 rounded-md bg-yellow-900/40 text-yellow-300 hover:bg-yellow-900/60">Edit</button>
         <button onClick={() => onDelete(flag)} className="text-xs px-2.5 py-1 rounded-md bg-red-900/40 text-red-300 hover:bg-red-900/60">Delete</button>
       </div>
     </div>
@@ -210,7 +210,7 @@ export default function FlagTable({ flags, loading, error, onRetry, onToggle, on
         placeholder="Search by key, description, or type..."
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
-        className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-sm text-gray-200 mb-3 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+        className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-sm text-gray-200 mb-3 focus:ring-1 focus:ring-yellow-500 focus:outline-none"
       />
       {buildTimeWarning && (
         <div className="bg-amber-900/30 border border-amber-700 text-amber-300 text-sm rounded-md px-3 py-2 mb-3">
@@ -292,7 +292,7 @@ export default function FlagTable({ flags, loading, error, onRetry, onToggle, on
                     )}
                     <button
                       onClick={() => onEdit(flag)}
-                      className="text-xs px-2.5 py-1 rounded-md bg-blue-900/40 text-blue-300 hover:bg-blue-900/60"
+                      className="text-xs px-2.5 py-1 rounded-md bg-yellow-900/40 text-yellow-300 hover:bg-yellow-900/60"
                     >
                       Edit
                     </button>

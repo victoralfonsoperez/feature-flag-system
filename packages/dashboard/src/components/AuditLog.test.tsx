@@ -85,7 +85,7 @@ describe('AuditLog', () => {
     const deleted = screen.getByText('deleted');
 
     expect(created.className).toContain('bg-green-900/40');
-    expect(updated.className).toContain('bg-blue-900/40');
+    expect(updated.className).toContain('bg-yellow-900/40');
     expect(deleted.className).toContain('bg-red-900/40');
   });
 

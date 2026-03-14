@@ -72,7 +72,7 @@ export default function TokenManager() {
         />
         <button
           type="submit"
-          className="bg-blue-600 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-blue-700"
+          className="bg-yellow-500 text-gray-900 rounded-md px-4 py-2 text-sm font-medium hover:bg-yellow-600"
         >
           Create Token
         </button>

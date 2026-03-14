@@ -50,7 +50,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               toast.type === 'success'
                 ? 'bg-green-900/30 border-green-700 text-green-300'
                 : toast.type === 'info'
-                  ? 'bg-blue-900/30 border-blue-700 text-blue-300'
+                  ? 'bg-yellow-900/30 border-yellow-700 text-yellow-300'
                   : 'bg-red-900/30 border-red-700 text-red-300'
             }`}
           >
@@ -58,7 +58,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             <button
               onClick={() => dismiss(toast.id)}
               className={`ml-2 font-medium hover:opacity-70 ${
-                toast.type === 'success' ? 'text-green-400' : toast.type === 'info' ? 'text-blue-400' : 'text-red-400'
+                toast.type === 'success' ? 'text-green-400' : toast.type === 'info' ? 'text-yellow-400' : 'text-red-400'
               }`}
               aria-label="Dismiss"
             >

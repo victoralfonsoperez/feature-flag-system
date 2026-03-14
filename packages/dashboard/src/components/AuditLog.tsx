@@ -12,7 +12,7 @@ function ActionBadge({ action }: { action: string }) {
     action === 'created'
       ? 'bg-green-900/40 text-green-300'
       : action === 'updated'
-        ? 'bg-blue-900/40 text-blue-300'
+        ? 'bg-yellow-900/40 text-yellow-300'
         : action === 'deleted'
           ? 'bg-red-900/40 text-red-300'
           : 'bg-gray-700 text-gray-300';
