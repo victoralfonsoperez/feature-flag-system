@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createHash, randomBytes, pbkdf2Sync } from 'node:crypto';
+import { randomBytes, pbkdf2Sync } from 'node:crypto';
 import Fastify, { FastifyInstance } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { authRoutes } from '../routes/auth.js';
