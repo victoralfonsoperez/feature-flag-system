@@ -294,7 +294,7 @@ Nice-to-haves that improve the day-to-day experience.
 #### Release
 - [x] Write project documentation and usage guide (`docs/USAGE.md` — update existing)
 - [x] Review and update README with final architecture and setup instructions
-- [x] Tag `v1.0.0` release
+- [ ] Tag `v1.0.0` release
 
 **Milestone:** v1.0 shipped.
 
