@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { createTokenPair, validateRefreshToken, revokeRefreshToken, revokeAllUserSessions } from '../auth/session.js';
 import type { Database } from '../db.js';
 
