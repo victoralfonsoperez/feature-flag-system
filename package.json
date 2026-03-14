@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "npm run dev -w packages/api & npm run dev -w packages/dashboard & wait",
     "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "test": "docker compose -f docker-compose.test.yml up -d --wait && npm run test --workspaces --if-present ; docker compose -f docker-compose.test.yml down",
     "lint": "npm run lint --workspaces --if-present"
   },
   "engines": {
