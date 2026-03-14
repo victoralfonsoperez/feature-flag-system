@@ -5,7 +5,7 @@ declare module 'fastify' {
     db: Database;
   }
   interface FastifyRequest {
-    user?: { id: number; email: string; role: string; source: 'session' | 'api-token' };
+    user?: { id: string; email: string; role: string; source: 'auth0' | 'api-token' };
     startTime?: number;
   }
 }

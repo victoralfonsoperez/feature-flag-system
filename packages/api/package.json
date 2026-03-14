@@ -8,17 +8,19 @@
     "build": "tsc && cp -r src/migrations dist/migrations",
     "start": "node dist/server.js",
     "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:integration": "vitest run --exclude '**/node_modules/**' --exclude '**/dist/**' integration",
+    "test:all": "vitest run --exclude '**/node_modules/**' --exclude '**/dist/**'",
     "test:db:up": "docker compose -f ../../docker-compose.test.yml up -d",
     "test:db:down": "docker compose -f ../../docker-compose.test.yml down",
     "seed": "tsx src/seed.ts",
-    "seed:admin": "tsx src/seed-admin.ts",
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^10.0.0",
     "@fastify/rate-limit": "^10.3.0",
     "fastify": "^5.0.0",
+    "jose": "^6.2.1",
     "pg": "^8.13.0"
   },
   "devDependencies": {

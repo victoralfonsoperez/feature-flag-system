@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@auth0/auth0-react": "^2.15.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

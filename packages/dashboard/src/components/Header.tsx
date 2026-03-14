@@ -7,8 +7,8 @@ type HeaderProps = {
   onEnvironmentChange: (env: Environment) => void;
   appId: string;
   onAppIdChange: (appId: string) => void;
-  view: 'flags' | 'tokens' | 'users' | 'activity';
-  onViewChange: (view: 'flags' | 'tokens' | 'users' | 'activity') => void;
+  view: 'flags' | 'tokens' | 'activity';
+  onViewChange: (view: 'flags' | 'tokens' | 'activity') => void;
   onOpenSettings?: () => void;
 };
 
@@ -60,7 +60,6 @@ export default function Header({ environment, onEnvironmentChange, appId, onAppI
             {navButton('Flags', 'flags')}
             {navButton('API Tokens', 'tokens')}
             {navButton('Activity', 'activity')}
-            {user?.role === 'admin' && navButton('Users', 'users')}
           </nav>
         </div>
         <div className="hidden md:flex items-center gap-4">
@@ -131,7 +130,6 @@ export default function Header({ environment, onEnvironmentChange, appId, onAppI
             {navButton('Flags', 'flags')}
             {navButton('API Tokens', 'tokens')}
             {navButton('Activity', 'activity')}
-            {user?.role === 'admin' && navButton('Users', 'users')}
           </nav>
           <div className="flex items-center gap-1">
             <label htmlFor="app-id-input-mobile" className="text-xs text-gray-400">App:</label>

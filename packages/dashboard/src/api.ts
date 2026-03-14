@@ -50,22 +50,31 @@ export class ApiError extends Error {
   }
 }
 
+let accessTokenGetter: (() => Promise<string>) | null = null;
+
+export function setAccessTokenGetter(getter: () => Promise<string>): void {
+  accessTokenGetter = getter;
+}
+
 async function request<T>(
   path: string,
   options?: RequestInit,
 ): Promise<T> {
   const baseUrl = getBaseUrl();
   const settings = getSettings();
-  const fetchOptions: RequestInit = {
-    credentials: 'include',
-    ...options,
+  const fetchOptions: RequestInit = { ...options };
+
+  // Build auth headers: prefer API token from settings, then Auth0 token
+  const headers: Record<string, string> = {
+    ...(options?.headers as Record<string, string> || {}),
   };
+
   if (settings.apiToken) {
-    fetchOptions.headers = {
-      ...(options?.headers as Record<string, string> || {}),
-      Authorization: `Bearer ${settings.apiToken}`,
-    };
+    headers.Authorization = `Bearer ${settings.apiToken}`;
   }
+
+  fetchOptions.headers = headers;
+
   const res = await fetch(`${baseUrl}${path}`, fetchOptions);
 
   if (!res.ok) {
@@ -77,56 +86,41 @@ async function request<T>(
   return res.json();
 }
 
-/** Retry wrapper: on 401, attempt a token refresh then replay the original request. */
 async function authedRequest<T>(
   path: string,
   options?: RequestInit,
 ): Promise<T> {
-  try {
-    return await request<T>(path, options);
-  } catch (err) {
-    if (err instanceof ApiError && err.status === 401) {
-      // Try refreshing the access token
-      const refreshRes = await fetch(`${getBaseUrl()}/auth/refresh`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (refreshRes.ok) {
-        // Retry the original request with the new cookie
-        return request<T>(path, options);
-      }
-    }
-    throw err;
+  const baseUrl = getBaseUrl();
+  const settings = getSettings();
+  const fetchOptions: RequestInit = { ...options };
+
+  const headers: Record<string, string> = {
+    ...(options?.headers as Record<string, string> || {}),
+  };
+
+  if (settings.apiToken) {
+    headers.Authorization = `Bearer ${settings.apiToken}`;
+  } else if (accessTokenGetter) {
+    const token = await accessTokenGetter();
+    headers.Authorization = `Bearer ${token}`;
   }
+
+  fetchOptions.headers = headers;
+
+  const res = await fetch(`${baseUrl}${path}`, fetchOptions);
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body.error ?? res.statusText);
+  }
+
+  if (res.status === 204) return undefined as T;
+  return res.json();
 }
 
 // Auth
 
-export function getAuthStatus(): Promise<{ setupRequired: boolean }> {
-  return request('/auth/status');
-}
-
-export function setup(email: string, password: string): Promise<{ user: { id: number; email: string; role: string } }> {
-  return request('/auth/setup', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
-}
-
-export function login(email: string, password: string): Promise<{ user: { id: number; email: string; role: string } }> {
-  return request('/auth/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
-}
-
-export function logout(): Promise<void> {
-  return request('/auth/logout', { method: 'POST' });
-}
-
-export function getMe(): Promise<{ user: { id: number; email: string; role: string } }> {
+export function getMe(): Promise<{ user: { id: string; email: string; role: string } }> {
   return authedRequest('/auth/me');
 }
 
@@ -146,26 +140,6 @@ export function createToken(name: string): Promise<{ id: number; name: string; t
 
 export function deleteToken(id: number): Promise<void> {
   return authedRequest(`/tokens/${id}`, { method: 'DELETE' });
-}
-
-// Users
-
-export type User = { id: number; email: string; role: 'admin' | 'viewer'; created_at: string };
-
-export function getUsers(): Promise<User[]> {
-  return authedRequest('/users');
-}
-
-export function createUser(email: string, password: string, role: 'admin' | 'viewer'): Promise<User> {
-  return authedRequest('/users', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, role }),
-  });
-}
-
-export function deleteUser(id: number): Promise<void> {
-  return authedRequest(`/users/${id}`, { method: 'DELETE' });
 }
 
 // Flags

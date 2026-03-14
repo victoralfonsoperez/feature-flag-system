@@ -1,12 +1,10 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
 import { initDatabase } from './db.js';
 import { flagRoutes } from './routes/flags.js';
 import { authRoutes } from './routes/auth.js';
 import { tokenRoutes } from './routes/tokens.js';
-import { userRoutes } from './routes/users.js';
 import { auditLogRoutes } from './routes/audit-log.js';
 import { healthRoutes } from './routes/health.js';
 import './types.js';
@@ -34,7 +32,6 @@ async function start() {
   });
 
   await app.register(cors, { origin: true, credentials: true });
-  await app.register(cookie);
   await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
 
   const db = await initDatabase();
@@ -76,7 +73,6 @@ async function start() {
 
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(tokenRoutes, { prefix: '/api/tokens' });
-  await app.register(userRoutes, { prefix: '/api/users' });
   await app.register(flagRoutes, { prefix: '/api/flags' });
   await app.register(auditLogRoutes, { prefix: '/api/audit-log' });
 

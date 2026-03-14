@@ -78,7 +78,9 @@ jobs:
         with:
           path: node_modules
           key: node-modules-${{ hashFiles('package-lock.json') }}
-      - run: npm run test --workspaces --if-present
+      - run: npm run test:all -w packages/api
+      - run: npm test -w packages/dashboard
+      - run: npm test -w packages/sdk --if-present
 
   build:
     name: Build

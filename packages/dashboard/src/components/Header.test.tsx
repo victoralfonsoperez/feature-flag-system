@@ -6,7 +6,7 @@ import type { Environment } from '../types';
 // Mock useAuth
 vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({
-    user: { id: 1, email: 'admin@test.com', role: 'admin' },
+    user: { id: 'auth0|1', email: 'admin@test.com', role: 'admin' },
     logout: vi.fn(),
   }),
 }));
@@ -32,25 +32,25 @@ describe('Header', () => {
     render(<Header {...defaultProps} />);
     expect(screen.getAllByText('Flags').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('API Tokens').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Activity').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('shows Users nav button for admin users', () => {
+  it('does not render Users nav button (removed with Auth0)', () => {
     render(<Header {...defaultProps} />);
-    expect(screen.getAllByText('Users').length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText('Users')).toBeNull();
   });
 
   it('calls onViewChange when a nav button is clicked', () => {
     const onViewChange = vi.fn();
     render(<Header {...defaultProps} onViewChange={onViewChange} />);
-    // Click the first "Users" button (desktop nav)
-    fireEvent.click(screen.getAllByText('Users')[0]);
-    expect(onViewChange).toHaveBeenCalledWith('users');
+    fireEvent.click(screen.getAllByText('Activity')[0]);
+    expect(onViewChange).toHaveBeenCalledWith('activity');
   });
 
   it('applies active style to button matching current view', () => {
-    render(<Header {...defaultProps} view="users" />);
-    const usersButtons = screen.getAllByText('Users');
-    expect(usersButtons[0].className).toContain('bg-gray-800');
+    render(<Header {...defaultProps} view="tokens" />);
+    const tokensButtons = screen.getAllByText('API Tokens');
+    expect(tokensButtons[0].className).toContain('bg-gray-800');
   });
 
   it('shows user email', () => {
@@ -66,8 +66,6 @@ describe('Header', () => {
   it('shows mobile menu when hamburger is clicked', () => {
     render(<Header {...defaultProps} />);
     const toggle = screen.getByLabelText('Toggle menu');
-    // Mobile menu nav items are rendered but the mobile container is hidden via CSS (md:hidden)
-    // After clicking toggle, the mobile menu section appears in the DOM
     fireEvent.click(toggle);
     // Should now have duplicate nav items (desktop + mobile)
     expect(screen.getAllByText('Flags').length).toBe(2);

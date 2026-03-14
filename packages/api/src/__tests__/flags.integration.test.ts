@@ -1,17 +1,16 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
-import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
-import { flagRoutes } from '../routes/flags';
-import { authRoutes } from '../routes/auth';
-import { hashPassword } from '../auth/password';
-import { createTokenPair } from '../auth/session';
-import type { FlagRow, Database } from '../db';
-import { createTestDb } from './test-helpers';
+import { flagRoutes } from '../routes/flags.js';
+import { authRoutes } from '../routes/auth.js';
+import type { FlagRow, Database } from '../db.js';
+import { createTestDb, createTestToken, mockAuth0Verification } from './test-helpers.js';
 import '../types.js';
 
+await mockAuth0Verification();
+
 let app: FastifyInstance;
-let authCookie: string;
+let authHeader: string;
 let db: Database;
 const TEST_EMAIL = 'test@example.com';
 
@@ -48,28 +47,17 @@ async function seedFlags(db: Database) {
   return flags;
 }
 
-async function createTestUser(db: Database): Promise<string> {
-  const passwordHash = await hashPassword('testpass123');
-  const result = await db.run(
-    'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?) RETURNING id',
-    TEST_EMAIL, passwordHash, 'admin',
-  );
-  const userId = result.rows[0].id as number;
-  const tokens = await createTokenPair(db, { id: userId, email: TEST_EMAIL, role: 'admin' });
-  return `access_token=${tokens.accessToken}; refresh_token=${tokens.refreshToken}`;
-}
-
 beforeAll(async () => {
   db = await createTestDb();
   app = Fastify();
   app.decorate('db', db);
-  await app.register(cookie);
   await app.register(rateLimit, { max: 1000, timeWindow: '1 minute' });
   await app.register(authRoutes, { prefix: '/api/auth' });
   await app.register(flagRoutes, { prefix: '/api/flags' });
   await app.ready();
 
-  authCookie = await createTestUser(db);
+  const token = await createTestToken({ email: TEST_EMAIL, roles: ['admin'] });
+  authHeader = `Bearer ${token}`;
   await seedFlags(db);
 });
 
@@ -143,7 +131,7 @@ describe('POST /api/flags', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: { key: 'new_feature', value: 'enabled', type: 'runtime' },
     });
     expect(res.statusCode).toBe(201);
@@ -165,7 +153,7 @@ describe('POST /api/flags', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: { key: 'new_feature', value: 'v2', type: 'runtime' },
     });
     expect(res.statusCode).toBe(409);
@@ -176,7 +164,7 @@ describe('POST /api/flags', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: { key: 'no_value' },
     });
     expect(res.statusCode).toBe(400);
@@ -187,7 +175,7 @@ describe('POST /api/flags', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: { key: 'invalid key!', value: 'x', type: 'runtime' },
     });
     expect(res.statusCode).toBe(400);
@@ -198,7 +186,7 @@ describe('POST /api/flags', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: { key: 'bad_type', value: 'x', type: 'invalid' },
     });
     expect(res.statusCode).toBe(400);
@@ -209,7 +197,7 @@ describe('POST /api/flags', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: { key: 'bad_env', value: 'x', type: 'runtime', environment: 'invalid' },
     });
     expect(res.statusCode).toBe(400);
@@ -224,7 +212,7 @@ describe('PUT /api/flags/:key', () => {
     const res = await app.inject({
       method: 'PUT',
       url: '/api/flags/enable_dark_mode',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: { value: 'false' },
     });
     expect(res.statusCode).toBe(200);
@@ -242,7 +230,7 @@ describe('PUT /api/flags/:key', () => {
     const res = await app.inject({
       method: 'PUT',
       url: '/api/flags/enable_dark_mode',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: { description: 'Updated description' },
     });
     expect(res.statusCode).toBe(200);
@@ -254,7 +242,7 @@ describe('PUT /api/flags/:key', () => {
     const res = await app.inject({
       method: 'PUT',
       url: '/api/flags/nonexistent_flag',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: { value: 'x' },
     });
     expect(res.statusCode).toBe(404);
@@ -269,14 +257,14 @@ describe('DELETE /api/flags/:key', () => {
     await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: { key: 'to_delete', value: 'bye', type: 'runtime' },
     });
 
     const res = await app.inject({
       method: 'DELETE',
       url: '/api/flags/to_delete',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
     });
     expect(res.statusCode).toBe(204);
 
@@ -288,7 +276,7 @@ describe('DELETE /api/flags/:key', () => {
     const res = await app.inject({
       method: 'DELETE',
       url: '/api/flags/nonexistent_flag',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
     });
     expect(res.statusCode).toBe(404);
     expect(res.json().error).toBe('Flag not found');
@@ -408,7 +396,6 @@ describe('GET /api/flags/resolve', () => {
   });
 
   it('distributes variants uniformly across 10k user IDs', () => {
-    // Test the hash distribution directly to avoid rate limiting
     const variants = [
       { name: 'control', value: 'blue', weight: 50 },
       { name: 'variant_a', value: 'green', weight: 25 },
@@ -420,7 +407,6 @@ describe('GET /api/flags/resolve', () => {
 
     for (let i = 0; i < total; i++) {
       const userId = `user-${i}`;
-      // FNV-1a hash — must match resolveVariant implementation
       let hash = 2166136261;
       for (let j = 0; j < userId.length; j++) {
         hash ^= userId.charCodeAt(j);
@@ -437,8 +423,6 @@ describe('GET /api/flags/resolve', () => {
       }
     }
 
-    // Expected: control=50%, variant_a=25%, variant_b=25%
-    // Allow 5% tolerance
     const tolerance = 0.05;
     expect(Math.abs(counts.blue / total - 0.5)).toBeLessThan(tolerance);
     expect(Math.abs(counts.green / total - 0.25)).toBeLessThan(tolerance);
@@ -453,7 +437,7 @@ describe('multi-app scoping', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: { key: 'shared_key', value: 'app1-value', type: 'runtime', app_id: 'app1' },
     });
     expect(res.statusCode).toBe(201);
@@ -465,7 +449,7 @@ describe('multi-app scoping', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: { key: 'shared_key', value: 'app2-value', type: 'runtime', app_id: 'app2' },
     });
     expect(res.statusCode).toBe(201);
@@ -491,44 +475,40 @@ describe('multi-app scoping', () => {
     const res = await app.inject({
       method: 'PUT',
       url: '/api/flags/shared_key?app_id=app1',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: { value: 'app1-updated' },
     });
     expect(res.statusCode).toBe(200);
     expect(res.json().value).toBe('app1-updated');
 
-    // Verify app2 flag is unchanged
     const app2 = await app.inject({ method: 'GET', url: '/api/flags/shared_key?app_id=app2' });
     expect(app2.json().value).toBe('app2-value');
   });
 
   it('DELETE removes only the correct app_id flag', async () => {
-    // Create a temp flag in app1
     await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: { key: 'to_delete_multi', value: 'v1', type: 'runtime', app_id: 'app1' },
     });
     await app.inject({
       method: 'POST',
       url: '/api/flags',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
       payload: { key: 'to_delete_multi', value: 'v2', type: 'runtime', app_id: 'app2' },
     });
 
     const res = await app.inject({
       method: 'DELETE',
       url: '/api/flags/to_delete_multi?app_id=app1',
-      headers: { cookie: authCookie },
+      headers: { authorization: authHeader },
     });
     expect(res.statusCode).toBe(204);
 
-    // app1 flag is gone
     const check1 = await app.inject({ method: 'GET', url: '/api/flags/to_delete_multi?app_id=app1' });
     expect(check1.statusCode).toBe(404);
 
-    // app2 flag still exists
     const check2 = await app.inject({ method: 'GET', url: '/api/flags/to_delete_multi?app_id=app2' });
     expect(check2.statusCode).toBe(200);
     expect(check2.json().value).toBe('v2');
