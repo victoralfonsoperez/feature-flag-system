@@ -245,7 +245,7 @@ Make it reliable enough to run in production.
 #### Deploy backend to Render
 - [x] Create Render free-tier Web Service linked to the repo (`packages/api`)
 - [x] Configure build command (`npm install && npm run build -w packages/api`) and start command
-- [x] Set environment variables: `DATABASE_URL`, `JWT_SECRET`, `GITHUB_PAT`, `WEBHOOK_URL`
+- [x] Set environment variables: `DATABASE_URL`, `AUTH0_DOMAIN`, `AUTH0_AUDIENCE`, `CORS_ORIGIN`
 - [x] Configure CORS to allow requests from the Netlify frontend domain
 - [x] Verify health check endpoint (`GET /health`) works on Render
 
