@@ -1,6 +1,11 @@
 FROM node:24-slim AS build
 WORKDIR /app
 
+ARG VITE_AUTH0_DOMAIN
+ARG VITE_AUTH0_CLIENT_ID
+ARG VITE_AUTH0_AUDIENCE
+ARG VITE_AUTH0_CALLBACK_URL=http://localhost:3200
+
 COPY package.json package-lock.json* ./
 COPY packages/dashboard/package.json packages/dashboard/
 
