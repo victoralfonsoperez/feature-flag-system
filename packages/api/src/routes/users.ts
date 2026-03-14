@@ -20,9 +20,9 @@ export async function userRoutes(app: FastifyInstance) {
 
   // GET /api/users — list all users
   app.get('/', adminRouteConfig, async (_request: FastifyRequest, reply: FastifyReply) => {
-    const users = app.db
-      .prepare('SELECT id, email, role, created_at FROM users ORDER BY created_at DESC')
-      .all() as Pick<UserRow, 'id' | 'email' | 'role' | 'created_at'>[];
+    const users = await app.db.getAll<Pick<UserRow, 'id' | 'email' | 'role' | 'created_at'>>(
+      'SELECT id, email, role, created_at FROM users ORDER BY created_at DESC',
+    );
 
     return reply.send(users);
   });
@@ -45,9 +45,10 @@ export async function userRoutes(app: FastifyInstance) {
         .send({ error: "role must be 'admin' or 'viewer'", statusCode: 400 });
     }
 
-    const existing = app.db
-      .prepare('SELECT id FROM users WHERE email = ?')
-      .get(email) as Pick<UserRow, 'id'> | undefined;
+    const existing = await app.db.getOne<Pick<UserRow, 'id'>>(
+      'SELECT id FROM users WHERE email = ?',
+      email,
+    );
 
     if (existing) {
       return reply.status(409).send({ error: 'A user with this email already exists', statusCode: 409 });
@@ -56,13 +57,15 @@ export async function userRoutes(app: FastifyInstance) {
     const passwordHash = await hashPassword(password);
     const userRole = role ?? 'viewer';
 
-    const result = app.db
-      .prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)')
-      .run(email, passwordHash, userRole);
+    const result = await app.db.run(
+      'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?) RETURNING id',
+      email, passwordHash, userRole,
+    );
 
-    const created = app.db
-      .prepare('SELECT id, email, role, created_at FROM users WHERE id = ?')
-      .get(result.lastInsertRowid) as Pick<UserRow, 'id' | 'email' | 'role' | 'created_at'>;
+    const created = await app.db.getOne<Pick<UserRow, 'id' | 'email' | 'role' | 'created_at'>>(
+      'SELECT id, email, role, created_at FROM users WHERE id = ?',
+      result.rows[0].id,
+    );
 
     return reply.status(201).send(created);
   });
@@ -76,9 +79,9 @@ export async function userRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Cannot delete your own account', statusCode: 400 });
     }
 
-    const result = app.db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+    const result = await app.db.run('DELETE FROM users WHERE id = ?', userId);
 
-    if (result.changes === 0) {
+    if (result.rowCount === 0) {
       return reply.status(404).send({ error: 'User not found', statusCode: 404 });
     }
 

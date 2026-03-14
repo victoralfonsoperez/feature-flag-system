@@ -2,20 +2,22 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
-import { initDatabase } from '../db.js';
 import { authRoutes } from '../routes/auth.js';
 import { tokenRoutes } from '../routes/tokens.js';
 import { flagRoutes } from '../routes/flags.js';
 import { hashPassword } from '../auth/password.js';
 import { createTokenPair } from '../auth/session.js';
+import type { Database } from '../db.js';
+import { createTestDb } from './test-helpers.js';
 import '../types.js';
 
 let app: FastifyInstance;
 let authCookie: string;
+let db: Database;
 
 beforeAll(async () => {
+  db = await createTestDb();
   app = Fastify();
-  const db = initDatabase(':memory:');
   app.decorate('db', db);
   await app.register(cookie);
   await app.register(rateLimit, { max: 1000, timeWindow: '1 minute' });
@@ -26,16 +28,18 @@ beforeAll(async () => {
 
   // Create a test user with JWT tokens
   const passwordHash = await hashPassword('testpass');
-  const result = db
-    .prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)')
-    .run('tokenuser@test.com', passwordHash, 'admin');
-  const userId = result.lastInsertRowid as number;
-  const tokens = createTokenPair(db, { id: userId, email: 'tokenuser@test.com', role: 'admin' });
+  const result = await db.run(
+    'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?) RETURNING id',
+    'tokenuser@test.com', passwordHash, 'admin',
+  );
+  const userId = result.rows[0].id as number;
+  const tokens = await createTokenPair(db, { id: userId, email: 'tokenuser@test.com', role: 'admin' });
   authCookie = `access_token=${tokens.accessToken}; refresh_token=${tokens.refreshToken}`;
 });
 
 afterAll(async () => {
   await app.close();
+  await db.close();
 });
 
 describe('GET /api/tokens', () => {

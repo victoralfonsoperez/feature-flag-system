@@ -9,23 +9,24 @@ if (!email || !password) {
 }
 
 async function main() {
-  const db = initDatabase();
+  const db = await initDatabase();
 
-  const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+  const existing = await db.getOne('SELECT id FROM users WHERE email = ?', email);
   if (existing) {
     console.error(`User ${email} already exists`);
     process.exit(1);
   }
 
   const passwordHash = await hashPassword(password);
-  db.prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)').run(
+  await db.run(
+    'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)',
     email,
     passwordHash,
     'admin',
   );
 
   console.log(`Admin user created: ${email}`);
-  db.close();
+  await db.close();
 }
 
 main();

@@ -1,4 +1,18 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: kanary
+      POSTGRES_PASSWORD: kanary
+      POSTGRES_DB: kanary
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kanary"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   api:
     build:
       context: .
@@ -6,10 +20,12 @@ services:
     ports:
       - "3100:3100"
     environment:
+      - DATABASE_URL=postgresql://kanary:kanary@postgres:5432/kanary
       - JWT_SECRET=${JWT_SECRET:-dev-secret-change-me}
       - PORT=3100
-    volumes:
-      - sqlite-data:/app/packages/api
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3100/health').then(r=>{if(!r.ok)process.exit(1)})"]
       interval: 10s
@@ -28,4 +44,4 @@ services:
         condition: service_healthy
 
 volumes:
-  sqlite-data:
+  pgdata:

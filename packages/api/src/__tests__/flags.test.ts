@@ -2,24 +2,20 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
-import { initDatabase } from '../db.js';
 import { flagRoutes } from '../routes/flags.js';
 import { authRoutes } from '../routes/auth.js';
 import { hashPassword } from '../auth/password.js';
 import { createTokenPair } from '../auth/session.js';
-import type { FlagRow } from '../db.js';
+import type { FlagRow, Database } from '../db.js';
+import { createTestDb } from './test-helpers.js';
 import '../types.js';
 
 let app: FastifyInstance;
 let authCookie: string;
+let db: Database;
 const TEST_EMAIL = 'test@example.com';
 
-function seedFlags(app: FastifyInstance) {
-  const insert = app.db.prepare(
-    `INSERT INTO flags (app_id, key, value, type, environment, description, variants)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-  );
-
+async function seedFlags(db: Database) {
   const flags = [
     ['default', 'enable_dark_mode', 'true', 'runtime', 'production', 'Toggle dark mode', null],
     ['default', 'maintenance_mode', 'false', 'runtime', 'production', 'Show maintenance page', null],
@@ -41,29 +37,31 @@ function seedFlags(app: FastifyInstance) {
     ],
   ];
 
-  const tx = app.db.transaction(() => {
-    for (const [app_id, key, value, type, environment, description, variants] of flags) {
-      insert.run(app_id, key, value, type, environment, description, variants);
-    }
-  });
-  tx();
+  for (const [app_id, key, value, type, environment, description, variants] of flags) {
+    await db.run(
+      `INSERT INTO flags (app_id, key, value, type, environment, description, variants)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      app_id, key, value, type, environment, description, variants,
+    );
+  }
 
   return flags;
 }
 
-async function createTestUser(app: FastifyInstance): Promise<string> {
+async function createTestUser(db: Database): Promise<string> {
   const passwordHash = await hashPassword('testpass123');
-  const result = app.db
-    .prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)')
-    .run(TEST_EMAIL, passwordHash, 'admin');
-  const userId = result.lastInsertRowid as number;
-  const tokens = createTokenPair(app.db, { id: userId, email: TEST_EMAIL, role: 'admin' });
+  const result = await db.run(
+    'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?) RETURNING id',
+    TEST_EMAIL, passwordHash, 'admin',
+  );
+  const userId = result.rows[0].id as number;
+  const tokens = await createTokenPair(db, { id: userId, email: TEST_EMAIL, role: 'admin' });
   return `access_token=${tokens.accessToken}; refresh_token=${tokens.refreshToken}`;
 }
 
 beforeAll(async () => {
+  db = await createTestDb();
   app = Fastify();
-  const db = initDatabase(':memory:');
   app.decorate('db', db);
   await app.register(cookie);
   await app.register(rateLimit, { max: 1000, timeWindow: '1 minute' });
@@ -71,12 +69,13 @@ beforeAll(async () => {
   await app.register(flagRoutes, { prefix: '/api/flags' });
   await app.ready();
 
-  authCookie = await createTestUser(app);
-  seedFlags(app);
+  authCookie = await createTestUser(db);
+  await seedFlags(db);
 });
 
 afterAll(async () => {
   await app.close();
+  await db.close();
 });
 
 // ── GET /api/flags ──────────────────────────────────────────────────────
@@ -156,10 +155,10 @@ describe('POST /api/flags', () => {
   });
 
   it('records user email in audit log', async () => {
-    const log = app.db
-      .prepare("SELECT changed_by FROM audit_log WHERE flag_key = 'new_feature' AND action = 'created'")
-      .get() as { changed_by: string };
-    expect(log.changed_by).toBe(TEST_EMAIL);
+    const log = await db.getOne<{ changed_by: string }>(
+      "SELECT changed_by FROM audit_log WHERE flag_key = 'new_feature' AND action = 'created'",
+    );
+    expect(log!.changed_by).toBe(TEST_EMAIL);
   });
 
   it('rejects duplicate key with 409', async () => {
@@ -233,10 +232,10 @@ describe('PUT /api/flags/:key', () => {
   });
 
   it('records user email in audit log on update', async () => {
-    const log = app.db
-      .prepare("SELECT changed_by FROM audit_log WHERE flag_key = 'enable_dark_mode' AND action = 'updated'")
-      .get() as { changed_by: string };
-    expect(log.changed_by).toBe(TEST_EMAIL);
+    const log = await db.getOne<{ changed_by: string }>(
+      "SELECT changed_by FROM audit_log WHERE flag_key = 'enable_dark_mode' AND action = 'updated'",
+    );
+    expect(log!.changed_by).toBe(TEST_EMAIL);
   });
 
   it('updates flag description without changing value', async () => {
@@ -543,9 +542,9 @@ describe('multi-app scoping', () => {
   });
 
   it('audit log records app_id', async () => {
-    const log = app.db
-      .prepare("SELECT app_id FROM audit_log WHERE flag_key = 'shared_key' AND app_id = 'app1'")
-      .get() as { app_id: string } | undefined;
+    const log = await db.getOne<{ app_id: string }>(
+      "SELECT app_id FROM audit_log WHERE flag_key = 'shared_key' AND app_id = 'app1'",
+    );
     expect(log).toBeDefined();
     expect(log!.app_id).toBe('app1');
   });

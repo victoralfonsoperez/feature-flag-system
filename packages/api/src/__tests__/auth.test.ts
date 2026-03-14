@@ -2,15 +2,17 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import Fastify, { FastifyInstance } from 'fastify';
 import cookie from '@fastify/cookie';
 import rateLimit from '@fastify/rate-limit';
-import { initDatabase } from '../db.js';
 import { authRoutes } from '../routes/auth.js';
+import type { Database } from '../db.js';
+import { createTestDb } from './test-helpers.js';
 import '../types.js';
 
 let app: FastifyInstance;
+let db: Database;
 
 beforeAll(async () => {
+  db = await createTestDb();
   app = Fastify();
-  const db = initDatabase(':memory:');
   app.decorate('db', db);
   await app.register(cookie);
   await app.register(rateLimit, { max: 1000, timeWindow: '1 minute' });
@@ -20,6 +22,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await app.close();
+  await db.close();
 });
 
 function getCookieValue(res: { cookies: unknown[] }, name: string): string | undefined {

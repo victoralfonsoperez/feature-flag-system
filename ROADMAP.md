@@ -214,14 +214,54 @@ Make it reliable enough to run in production.
 #### Local development (done)
 - [x] Write `docker-compose.yml` at repo root — API + dashboard + volume for SQLite persistence
 - [x] Document `docker compose up` workflow in README
+- [x] Update `Dockerfile` for the API to work with `pg` instead of `better-sqlite3` (remove native SQLite build deps)
+- [x] Update `docker-compose.yml` to include a PostgreSQL container (`postgres:16-alpine`) with a named volume for data persistence
+- [x] Configure API service with `DATABASE_URL` pointing to the local PostgreSQL container
+- [x] Add an init script or entrypoint that runs the migration (`001_init.sql`) on first start
+- [x] Update dashboard service env to point `VITE_API_URL` to the API container
+- [x] Verify `docker compose up` brings up the full stack (PostgreSQL + API + dashboard) from scratch
+- [x] Update README with the new `docker compose` instructions
 
-#### Deployment
-- [ ] Deploy API to hosting provider (Fly.io, Railway, or VPS)
-- [ ] Configure HTTPS and environment-specific secrets (`JWT_SECRET`, `GITHUB_PAT`)
-- [ ] Run end-to-end smoke test in the deployed environment
-- [ ] Write deployment documentation (`docs/DEPLOYMENT.md`) covering setup, env vars, and troubleshooting
+#### Database migration: SQLite → PostgreSQL (done)
+- [ ] Create Supabase project and provision free-tier PostgreSQL database
+- [x] Replace `better-sqlite3` with `pg` (node-postgres) driver in `packages/api`
+- [x] Create `packages/api/src/db.ts` adapter that wraps `pg.Pool` with the same query interface
+  - Replace `db.prepare(sql).get(...)` → `pool.query(sql, params)` with `LIMIT 1`
+  - Replace `db.prepare(sql).all(...)` → `pool.query(sql, params)`
+  - Replace `db.prepare(sql).run(...)` → `pool.query(sql, params)` returning `rowCount`
+  - Replace `result.lastInsertRowid` → `RETURNING id` clause
+- [x] Adapt SQL syntax differences:
+  - `datetime('now')` → `NOW()`
+  - `INTEGER PRIMARY KEY AUTOINCREMENT` → `SERIAL PRIMARY KEY`
+  - `PRAGMA table_info()` → `information_schema.columns` queries
+  - `TEXT` defaults stay the same; timestamps can use `TIMESTAMPTZ`
+  - `db.transaction(() => { ... })` → `BEGIN` / `COMMIT` via `pool.query`
+- [x] Create SQL migration script (`packages/api/src/migrations/001_init.sql`) with all 5 tables: `flags`, `audit_log`, `users`, `sessions`, `api_tokens`
+- [x] Update `seed.ts` and `seed-admin.ts` to use the new `pg` adapter
+- [x] Update all API test files to use PostgreSQL test database via Docker
+- [x] Verify all existing API tests pass against PostgreSQL
+- [x] Add `DATABASE_URL` env var support for connection string
 
-**Milestone:** System is deployed and serving real traffic.
+#### Deploy backend to Render
+- [ ] Create Render free-tier Web Service linked to the repo (`packages/api`)
+- [ ] Configure build command (`npm install && npm run build -w packages/api`) and start command
+- [ ] Set environment variables: `DATABASE_URL`, `JWT_SECRET`, `GITHUB_PAT`, `WEBHOOK_URL`
+- [ ] Configure CORS to allow requests from the Netlify frontend domain
+- [ ] Verify health check endpoint (`GET /health`) works on Render
+
+#### Deploy frontend to Netlify
+- [ ] Create Netlify site linked to the repo (`packages/dashboard`)
+- [ ] Configure build command (`npm run build -w packages/dashboard`) and publish directory (`packages/dashboard/dist`)
+- [ ] Set `VITE_API_URL` env var pointing to the Render backend URL
+- [ ] Add `_redirects` or `netlify.toml` for SPA routing (`/* → /index.html`)
+- [ ] Verify dashboard loads and connects to the deployed API
+
+#### End-to-end verification
+- [ ] Run full smoke test: setup admin → login → create flag → toggle → edit → delete → audit log
+- [ ] Verify SDK `/resolve` endpoint works from an external origin
+- [ ] Write deployment documentation (`docs/DEPLOYMENT.md`) covering Supabase, Render, and Netlify setup
+
+**Milestone:** System is deployed and serving real traffic on Supabase + Render + Netlify.
 
 ## Phase 7 — Polish & Extras (Weeks 11–12)
 
@@ -269,6 +309,6 @@ Nice-to-haves that improve the day-to-day experience.
 | 3 — Dashboard UI | 4–5 | ~15h | Full flag management web interface |
 | 4 — Client SDK | 6 | ~7h | React provider + hooks for runtime flags |
 | 5 — A/B Testing | 7–8 | ~13h | Variant assignment + experiment support |
-| 6 — Hardening | 9–10 | ~14h | Production deployment with monitoring |
+| 6 — Hardening | 9–10 | ~14h | PostgreSQL migration, deploy to Supabase + Render + Netlify |
 | 7 — Polish | 11–12 | ~11h | Revert, notifications, multi-app, v1.0 |
 | **Total** | **12 weeks** | **~81h** | |
