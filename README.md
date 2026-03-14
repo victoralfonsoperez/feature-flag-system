@@ -29,70 +29,38 @@ A self-hosted feature flag system with build-time and runtime flag support, GitH
 
 ## Authentication
 
-The system uses **JWT-based auth** with two tokens for dashboard users, and per-user API tokens for external clients (CI, curl, Postman):
+The system uses **Auth0** for dashboard user authentication and **API tokens** for external clients (CI, curl, Postman).
 
-- **Access token** — short-lived JWT (5 min), sent as an httpOnly cookie
-- **Refresh token** — longer-lived JWT (4 hours), its JTI stored server-side in SQLite for revocation
-- **API tokens** — SHA-256 hashed, for external tools via `Authorization: Bearer` header
+- **Auth0 (RS256 JWTs)** — dashboard users log in via Auth0; the API validates tokens using Auth0's JWKS endpoint
+- **API tokens** — SHA-256 hashed, created in the dashboard, sent via `Authorization: Bearer` header
 
 ### Auth Flow
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│                          FIRST-TIME SETUP                                │
+│                     DASHBOARD LOGIN (Auth0)                              │
 │                                                                          │
-│  Browser ──GET /api/auth/status──▶ API                                   │
-│           ◀── { setupRequired: true } ──┘                                │
+│  Browser ──▶ Auth0 Universal Login                                       │
+│           ◀── redirect with authorization code                           │
+│  Browser ──▶ Auth0 token exchange                                        │
+│           ◀── access_token (RS256 JWT) + id_token                        │
 │                                                                          │
-│  Browser ──POST /api/auth/setup──▶ API                                   │
-│            { email, password }    │                                       │
-│                                   ├─▶ hash password (scrypt)             │
-│                                   ├─▶ INSERT into users                  │
-│                                   ├─▶ sign access JWT (5 min)            │
-│                                   ├─▶ sign refresh JWT (4h) + store JTI  │
-│           ◀── Set-Cookie: access_token  (httpOnly, sameSite=lax) ──┐     │
-│           ◀── Set-Cookie: refresh_token (httpOnly, sameSite=lax) ──┘     │
-└──────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────┐
-│                          DASHBOARD LOGIN                                 │
-│                                                                          │
-│  Browser ──POST /api/auth/login──▶ API                                   │
-│            { email, password }    │                                       │
-│                                   ├─▶ verify password (scrypt)           │
-│                                   ├─▶ sign access JWT (5 min)            │
-│                                   ├─▶ sign refresh JWT (4h) + store JTI  │
-│           ◀── Set-Cookie: access_token + refresh_token ──────────────┘   │
+│  Dashboard stores access_token in memory, refreshes silently             │
+│  via Auth0 SDK's getAccessTokenSilently()                                │
 └──────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                    AUTHENTICATED REQUEST (DASHBOARD)                     │
 │                                                                          │
 │  Browser ──any request──▶ API                                            │
-│            Cookie: access_token, refresh_token                           │
+│            Authorization: Bearer <auth0-jwt>                             │
 │                             │                                            │
-│                             ├─▶ verify access_token JWT (HMAC-SHA256)    │
-│                             │   ├─ valid ──▶ attach user, proceed        │
-│                             │   └─ expired ──▼                           │
-│                             │                                            │
-│                             ├─▶ check refresh_token JWT                  │
-│                             │   ├─ valid + JTI in DB ──▶ issue new       │
-│                             │   │   access_token cookie, proceed         │
-│                             │   └─ invalid ──▶ 401                       │
-│                             │                                            │
-│  (transparent to the client — refresh happens automatically              │
-│   inside the middleware, no extra round-trip needed)                      │
-└──────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────┐
-│              EXPLICIT REFRESH (client-side fallback)                     │
-│                                                                          │
-│  Dashboard catches 401 ──POST /api/auth/refresh──▶ API                   │
-│                           Cookie: refresh_token   │                      │
-│                                                   ├─▶ verify refresh JWT │
-│                                                   ├─▶ check JTI in DB   │
-│                           ◀── Set-Cookie: new access_token ──────────┘   │
-│                           retry original request                         │
+│                             ├─▶ fetch JWKS from Auth0 (cached)           │
+│                             ├─▶ verify RS256 signature                   │
+│                             ├─▶ check audience & issuer                  │
+│                             ├─▶ extract sub, email, roles                │
+│                             ├─▶ attach user to request                   │
+│           ◀── response ─────┘                                            │
 └──────────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────────┐
@@ -104,46 +72,24 @@ The system uses **JWT-based auth** with two tokens for dashboard users, and per-
 │  curl/CI ──request──▶ API                                                │
 │            Authorization: Bearer <token>                                 │
 │                           │                                              │
+│                           ├─▶ try Auth0 JWT verification first           │
+│                           │   (fails → fall through)                     │
 │                           ├─▶ SHA-256 hash the token                     │
 │                           ├─▶ lookup hash in api_tokens                  │
 │                           ├─▶ update last_used_at                        │
 │                           ├─▶ attach user to request                     │
 │           ◀── response ───┘                                              │
 └──────────────────────────────────────────────────────────────────────────┘
-
-┌──────────────────────────────────────────────────────────────────────────┐
-│                         AUTH MIDDLEWARE ORDER                             │
-│                                                                          │
-│  Incoming request                                                        │
-│       │                                                                  │
-│       ▼                                                                  │
-│  1. access_token cookie?                                                 │
-│     ├─ YES + valid JWT ──▶ attach user ──▶ done                          │
-│     └─ NO or expired ──▼                                                 │
-│                                                                          │
-│  2. refresh_token cookie?                                                │
-│     ├─ YES + valid JWT + JTI in DB ──▶ new access_token cookie           │
-│     │                                  attach user ──▶ done              │
-│     └─ NO or invalid ──▼                                                 │
-│                                                                          │
-│  3. Authorization: Bearer header?                                        │
-│     ├─ YES ──▶ SHA-256 hash ──▶ lookup in api_tokens                     │
-│     │   ├─ found ──▶ attach user ──▶ done                                │
-│     │   └─ not found ──▶ 401                                             │
-│     └─ NO ──▶ 401                                                        │
-└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Design Decisions
 
-- **JWT access + refresh tokens** — short-lived access (5 min) with longer refresh (4h) for balance of security and UX
-- **Refresh token JTI stored in PostgreSQL** — enables server-side revocation (logout invalidates immediately)
-- **Transparent refresh in middleware** — no extra round-trip; expired access tokens are silently reissued if refresh is valid
-- **httpOnly cookies** — not accessible to JavaScript, mitigates XSS
-- **sameSite: lax** — prevents CSRF while allowing normal navigation
-- **HMAC-SHA256 JWT signing** — using `JWT_SECRET` env var, Node.js built-in `crypto`
-- **scrypt password hashing** — with 16-byte random salt, constant-time comparison
+- **Auth0 RS256 JWTs** — tokens signed with Auth0's private key, verified via public JWKS endpoint
+- **Dual auth strategy** — Auth0 JWT checked first, then API token hash lookup as fallback
+- **Role-based access** — roles extracted from custom `https://kanary.dev/roles` claim in the Auth0 token
+- **JWKS caching** — Auth0 public keys fetched once and cached in memory
 - **API tokens stored as SHA-256 hashes** — plaintext shown only once at creation
+- **Public reads, authenticated writes** — `GET /api/flags` is public; all mutations require auth
 
 ## Packages
 
@@ -159,19 +105,83 @@ See [docs/USAGE.md](./docs/USAGE.md) for a complete guide on integrating feature
 
 ## Getting Started
 
+### Prerequisites
+
+- Node.js (see `.nvmrc` for version)
+- An **Auth0 tenant** (free tier works)
+
+### 1. Set up Auth0
+
+1. **Create an Auth0 account** at [auth0.com](https://auth0.com) if you don't have one.
+
+2. **Create a Single Page Application** in Auth0:
+   - Go to **Applications > Create Application > Single Page Web Applications**
+   - Note the **Domain** and **Client ID** from the app's Settings tab
+   - Under **Allowed Callback URLs**, add: `http://localhost:5173`
+   - Under **Allowed Logout URLs**, add: `http://localhost:5173`
+   - Under **Allowed Web Origins**, add: `http://localhost:5173`
+   - If running via Docker Compose, also add `http://localhost:3200` to all three fields above
+
+3. **Create an API** in Auth0:
+   - Go to **Applications > APIs > Create API**
+   - Set the **Identifier (Audience)** to something like `https://api.kanary.dev` (this is a logical identifier, not an actual URL)
+   - Signing Algorithm: **RS256**
+
+4. **Add roles** (optional but recommended):
+   - Go to **User Management > Roles**
+   - Create an `admin` role and a `viewer` role
+   - Assign the `admin` role to your user
+
+5. **Add a custom claim for roles** via an Auth0 Action:
+   - Go to **Actions > Flows > Login**
+   - Create a custom Action with this code:
+     ```js
+     exports.onExecutePostLogin = async (event, api) => {
+       const namespace = 'https://kanary.dev';
+       const roles = event.authorization?.roles || [];
+       api.accessToken.setCustomClaim(`${namespace}/roles`, roles);
+       api.idToken.setCustomClaim(`${namespace}/roles`, roles);
+     };
+     ```
+   - Drag it into the Login flow and **Deploy**
+
+### 2. Configure environment variables
+
+**API** — copy `packages/api/.env.example` to `packages/api/.env`:
+
+```bash
+cp packages/api/.env.example packages/api/.env
+```
+
+Fill in:
+```
+AUTH0_DOMAIN=your-tenant.us.auth0.com
+AUTH0_AUDIENCE=https://api.kanary.dev
+```
+
+**Dashboard** — copy `packages/dashboard/.env.example` to `packages/dashboard/.env`:
+
+```bash
+cp packages/dashboard/.env.example packages/dashboard/.env
+```
+
+Fill in:
+```
+VITE_AUTH0_DOMAIN=your-tenant.us.auth0.com
+VITE_AUTH0_CLIENT_ID=your-spa-client-id
+VITE_AUTH0_AUDIENCE=https://api.kanary.dev
+VITE_AUTH0_CALLBACK_URL=http://localhost:5173
+```
+
+### 3. Run locally
+
 ```bash
 nvm use            # switch to the required Node version (see .nvmrc)
 npm install
 npm run dev        # start all packages in dev mode
 ```
 
-On first launch, visit the dashboard and create the initial admin account through the setup form.
-
-### Headless setup (Docker / CI)
-
-```bash
-npm run seed:admin -w packages/api -- admin@example.com yourpassword
-```
+Visit `http://localhost:5173` — you'll be redirected to the Auth0 login page.
 
 ### API only
 
@@ -194,6 +204,26 @@ Run PostgreSQL, the API, and the dashboard together:
 ```bash
 docker compose up --build
 ```
+
+The API reads `AUTH0_DOMAIN` and `AUTH0_AUDIENCE` from a `.env` file in the project root (or you can export them). Create one if you haven't:
+
+```bash
+# .env (project root — used by docker compose)
+AUTH0_DOMAIN=your-tenant.us.auth0.com
+AUTH0_AUDIENCE=https://api.kanary.dev
+```
+
+The dashboard bakes `VITE_*` variables at build time. Set them in `packages/dashboard/.env` **before** building:
+
+```bash
+# packages/dashboard/.env
+VITE_AUTH0_DOMAIN=your-tenant.us.auth0.com
+VITE_AUTH0_CLIENT_ID=your-spa-client-id
+VITE_AUTH0_AUDIENCE=https://api.kanary.dev
+VITE_AUTH0_CALLBACK_URL=http://localhost:3200
+```
+
+> **Note:** When running via Docker Compose the dashboard is served at `http://localhost:3200`, so set `VITE_AUTH0_CALLBACK_URL` to that and make sure it's in your Auth0 allowed URLs.
 
 This starts:
 - **PostgreSQL** on port 5432 (internal only)
@@ -226,15 +256,27 @@ npm run test:db:down -w packages/api  # stop test PostgreSQL
 
 ### Environment Variables
 
+#### API (`packages/api/.env`)
+
 | Variable | Description | Required |
 |---|---|---|
 | `DATABASE_URL` | PostgreSQL connection string (e.g. `postgresql://user:pass@host:5432/db`) | Yes |
-| `JWT_SECRET` | Secret key for signing JWTs. Auto-generated in dev if unset. | Yes (prod) |
+| `AUTH0_DOMAIN` | Auth0 tenant domain (e.g. `your-tenant.us.auth0.com`) | Yes |
+| `AUTH0_AUDIENCE` | Auth0 API identifier (e.g. `https://api.kanary.dev`) | Yes |
 | `PORT` | Port to listen on (default: `3100`) | No |
 | `GITHUB_PAT` | GitHub Personal Access Token for webhook dispatch | No |
 | `GITHUB_OWNER` | GitHub repository owner for webhook dispatch | No |
 | `GITHUB_REPO` | GitHub repository name for webhook dispatch | No |
 | `WEBHOOK_URL` | Slack/Discord webhook URL for flag change notifications | No |
+
+#### Dashboard (`packages/dashboard/.env`)
+
+| Variable | Description | Required |
+|---|---|---|
+| `VITE_AUTH0_DOMAIN` | Auth0 tenant domain (must match API's `AUTH0_DOMAIN`) | Yes |
+| `VITE_AUTH0_CLIENT_ID` | Auth0 SPA application Client ID | Yes |
+| `VITE_AUTH0_AUDIENCE` | Auth0 API identifier (must match API's `AUTH0_AUDIENCE`) | Yes |
+| `VITE_AUTH0_CALLBACK_URL` | Redirect URL after login (e.g. `http://localhost:5173`) | Yes |
 
 ## Roadmap
 
