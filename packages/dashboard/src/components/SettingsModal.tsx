@@ -53,7 +53,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               placeholder="/api"
               value={apiUrl}
               onChange={(e) => setApiUrl(e.target.value)}
-              className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
             />
             <p className="text-xs text-gray-400 mt-1">
               Override the default API endpoint. Leave empty to use the default.
@@ -69,7 +69,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               placeholder="Enter API token"
               value={apiToken}
               onChange={(e) => setApiToken(e.target.value)}
-              className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
             />
             <p className="text-xs text-gray-400 mt-1">
               Attach a Bearer token to all API requests. Useful when the dashboard is hosted separately.
@@ -85,7 +85,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 text-sm text-white bg-blue-600 rounded-md hover:bg-blue-700"
+            className="px-4 py-2 text-sm text-gray-900 bg-yellow-500 rounded-md hover:bg-yellow-600"
           >
             Save
           </button>

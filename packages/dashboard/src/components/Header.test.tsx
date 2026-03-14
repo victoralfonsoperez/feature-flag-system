@@ -25,7 +25,7 @@ const defaultProps = {
 describe('Header', () => {
   it('renders the app title', () => {
     render(<Header {...defaultProps} />);
-    expect(screen.getByText('Feature Flags')).toBeDefined();
+    expect(screen.getByText('Kanary')).toBeDefined();
   });
 
   it('renders all navigation buttons', () => {

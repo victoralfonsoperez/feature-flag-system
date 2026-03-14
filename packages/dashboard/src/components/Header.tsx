@@ -44,7 +44,17 @@ export default function Header({ environment, onEnvironmentChange, appId, onAppI
     <header className="bg-gray-900 border-b border-gray-700 px-4 md:px-6 py-4">
       <div className="flex items-center justify-between max-w-6xl mx-auto">
         <div className="flex items-center gap-4 md:gap-6">
-          <h1 className="text-xl font-semibold text-gray-100">Feature Flags</h1>
+          <div className="flex items-center gap-2">
+            <svg className="w-7 h-7" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="32" cy="32" r="30" fill="#CA8A04" fillOpacity="0.15" stroke="#EAB308" strokeWidth="2" />
+              <path d="M22 38c0-6 4-14 10-16 2-0.7 4 0 5 2 1.5 3 1 7-1 10-2 3-5 5-8 6" stroke="#EAB308" strokeWidth="2.5" strokeLinecap="round" fill="#EAB308" fillOpacity="0.3" />
+              <circle cx="34" cy="26" r="1.5" fill="#EAB308" />
+              <path d="M37 24c2-1 4-0.5 5 0.5" stroke="#EAB308" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M28 38c-3 2-6 6-6 10" stroke="#EAB308" strokeWidth="2" strokeLinecap="round" />
+              <path d="M32 40c-1 3-1 7 0 10" stroke="#EAB308" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            <h1 className="text-xl font-semibold text-yellow-400">Kanary</h1>
+          </div>
           {/* Desktop nav */}
           <nav className="hidden md:flex gap-2">
             {navButton('Flags', 'flags')}
@@ -63,7 +73,7 @@ export default function Header({ environment, onEnvironmentChange, appId, onAppI
               onChange={(e) => setAppIdDraft(e.target.value)}
               onBlur={commitAppId}
               onKeyDown={(e) => { if (e.key === 'Enter') commitAppId(); }}
-              className="w-28 border border-gray-600 rounded-md px-2 py-1 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-28 border border-gray-600 rounded-md px-2 py-1 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
             />
           </div>
           {view === 'flags' && (
@@ -132,7 +142,7 @@ export default function Header({ environment, onEnvironmentChange, appId, onAppI
               onChange={(e) => setAppIdDraft(e.target.value)}
               onBlur={commitAppId}
               onKeyDown={(e) => { if (e.key === 'Enter') commitAppId(); }}
-              className="w-full border border-gray-600 rounded-md px-2 py-1 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full border border-gray-600 rounded-md px-2 py-1 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
             />
           </div>
           {view === 'flags' && (

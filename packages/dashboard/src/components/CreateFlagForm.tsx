@@ -127,7 +127,7 @@ export default function CreateFlagForm({ onSubmit }: CreateFlagFormProps) {
             id="flag-type"
             value={type}
             onChange={(e) => setType(e.target.value as CreateFlagInput['type'])}
-            className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
           >
             {FLAG_TYPES.map((t) => (
               <option key={t} value={t}>{t}</option>
@@ -142,7 +142,7 @@ export default function CreateFlagForm({ onSubmit }: CreateFlagFormProps) {
             id="flag-environment"
             value={environment}
             onChange={(e) => setEnvironment(e.target.value as Environment)}
-            className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
           >
             {ENVIRONMENTS.map((env) => (
               <option key={env} value={env}>{env}</option>
@@ -167,7 +167,7 @@ export default function CreateFlagForm({ onSubmit }: CreateFlagFormProps) {
           placeholder="Optional description"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200 focus:outline-none focus:ring-1 focus:ring-yellow-500"
         />
       </div>
 
@@ -183,7 +183,7 @@ export default function CreateFlagForm({ onSubmit }: CreateFlagFormProps) {
                 setVariantError(undefined);
               }
             }}
-            className="rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500"
+            className="rounded border-gray-600 bg-gray-800 text-yellow-500 focus:ring-yellow-500"
           />
           Add variants
         </label>
@@ -200,7 +200,7 @@ export default function CreateFlagForm({ onSubmit }: CreateFlagFormProps) {
       <button
         type="submit"
         disabled={submitting}
-        className="bg-blue-600 text-white rounded-md px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="bg-yellow-500 text-gray-900 rounded-md px-4 py-2 text-sm font-medium hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {submitting ? 'Creating...' : 'Create Flag'}
       </button>

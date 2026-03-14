@@ -80,7 +80,7 @@ describe('FlagTable', () => {
     const runtimeBadges = screen.getAllByText('runtime');
     const buildTimeBadges = screen.getAllByText('build-time');
 
-    expect(runtimeBadges[0].className).toContain('bg-blue-900/40');
+    expect(runtimeBadges[0].className).toContain('bg-yellow-900/40');
     expect(buildTimeBadges[0].className).toContain('bg-amber-900/40');
   });
 

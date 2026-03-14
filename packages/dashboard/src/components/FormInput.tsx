@@ -44,7 +44,7 @@ export default function FormInput({
               ? 'focus:ring-green-500'
               : status === 'warning'
                 ? 'focus:ring-amber-500'
-                : 'focus:ring-blue-500'
+                : 'focus:ring-yellow-500'
         } ${className ?? ''}`}
         {...inputProps}
       />
