@@ -1,6 +1,6 @@
 {
   "name": "@victoralfonsoperez/feature-flags-sdk",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
   "description": "React SDK for the Kanary feature flag system",
   "main": "dist/index.js",
