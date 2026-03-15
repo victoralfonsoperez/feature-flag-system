@@ -43,7 +43,13 @@ The Feature Flag System supports two scenarios:
 
 2. **Log in via Auth0** — visit the dashboard (locally at `http://localhost:5173`, or the deployed URL). You'll be redirected to Auth0 to sign in or create an account.
 
-3. **Create an API token** — once logged in, navigate to Settings and create an API token. Copy the token immediately; it is only shown once. For SDK/client apps, create an app-scoped token by specifying an App ID — this restricts the token to only read flags for that app.
+3. **Create an API token** — once logged in, navigate to **Settings > API Tokens** and create a token. Copy it immediately; it is only shown once.
+
+   > **Why do you need a token?** Every API endpoint requires authentication. The dashboard handles this automatically via Auth0, but any external client — the React SDK, CI pipelines, curl scripts, or custom integrations — needs an API token sent as `Authorization: Bearer <token>`.
+
+   **Token types:**
+   - **App-scoped token** (recommended for SDK/clients) — set an App ID when creating the token. The token can only access flags for that specific app, providing isolation between consuming apps.
+   - **Unscoped token** (for CI/admin scripts) — leave App ID empty. The token can access flags for any app.
 
 4. **Create some flags** — use the dashboard or API to create flags (see [Managing Flags via Dashboard](#managing-flags-via-dashboard) or [API Reference](#api-reference-quick)).
 

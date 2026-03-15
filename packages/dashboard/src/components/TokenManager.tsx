@@ -61,7 +61,21 @@ export default function TokenManager() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h2 className="text-lg font-semibold text-gray-100 mb-4">API Tokens</h2>
+      <h2 className="text-lg font-semibold text-gray-100 mb-2">API Tokens</h2>
+      <p className="text-sm text-gray-400 mb-4">
+        API tokens authenticate requests to the Flag Service API. All endpoints require a token —
+        the SDK needs one to fetch flags at runtime, and CI/scripts need one for build-time flag resolution or flag management.
+        Tokens scoped to an App ID can only access flags for that app. Unscoped tokens can access all apps.
+      </p>
+
+      <div className="mb-6 p-3 bg-gray-900 border border-gray-700 rounded-md">
+        <p className="text-xs font-semibold text-gray-300 mb-2">When do you need a token?</p>
+        <ul className="text-xs text-gray-400 space-y-1 list-disc list-inside">
+          <li><span className="text-yellow-300">React SDK</span> — pass as the <code className="bg-gray-800 px-1 rounded text-yellow-400">apiKey</code> prop to <code className="bg-gray-800 px-1 rounded text-yellow-400">FlagProvider</code>. Create a scoped token for each app.</li>
+          <li><span className="text-yellow-300">CI / build scripts</span> — use in the <code className="bg-gray-800 px-1 rounded text-yellow-400">Authorization: Bearer</code> header when fetching build-time flags via curl or scripts.</li>
+          <li><span className="text-yellow-300">External integrations</span> — any client (Postman, webhooks, custom services) that reads or manages flags programmatically.</li>
+        </ul>
+      </div>
 
       <form onSubmit={handleCreate} className="flex gap-3 mb-6">
         <input
