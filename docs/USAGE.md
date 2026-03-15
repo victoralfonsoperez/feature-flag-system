@@ -43,7 +43,13 @@ The Feature Flag System supports two scenarios:
 
 2. **Log in via Auth0** — visit the dashboard (locally at `http://localhost:5173`, or the deployed URL). You'll be redirected to Auth0 to sign in or create an account.
 
-3. **Create an API token** — once logged in, navigate to Settings and create an API token. Copy the token immediately; it is only shown once. For SDK/client apps, create an app-scoped token by specifying an App ID — this restricts the token to only read flags for that app.
+3. **Create an API token** — once logged in, navigate to **Settings > API Tokens** and create a token. Copy it immediately; it is only shown once.
+
+   > **Why do you need a token?** Every API endpoint requires authentication. The dashboard handles this automatically via Auth0, but any external client — the React SDK, CI pipelines, curl scripts, or custom integrations — needs an API token sent as `Authorization: Bearer <token>`.
+
+   **Token types:**
+   - **App-scoped token** (recommended for SDK/clients) — set an App ID when creating the token. The token can only access flags for that specific app, providing isolation between consuming apps.
+   - **Unscoped token** (for CI/admin scripts) — leave App ID empty. The token can access flags for any app.
 
 4. **Create some flags** — use the dashboard or API to create flags (see [Managing Flags via Dashboard](#managing-flags-via-dashboard) or [API Reference](#api-reference-quick)).
 
@@ -359,9 +365,9 @@ The dispatch payload includes the flag key and timestamp:
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/flags` | No | List all flags (filterable by `type`, `env`, `app_id` query params) |
-| `GET` | `/api/flags/resolve` | Yes | Resolve flags for a client (query params: `type`, `env`, `user_id`, `app_id`). App-scoped tokens can only resolve their own `app_id`. |
-| `GET` | `/api/flags/:key` | No | Get a single flag by key |
+| `GET` | `/api/flags` | Yes | List all flags (filterable by `type`, `env`, `app_id` query params) |
+| `GET` | `/api/flags/resolve` | Yes | Resolve flags for a client (query params: `type`, `env`, `user_id`, `app_id`) |
+| `GET` | `/api/flags/:key` | Yes | Get a single flag by key |
 | `POST` | `/api/flags` | Yes | Create a new flag |
 | `PUT` | `/api/flags/:key` | Yes | Update a flag |
 | `DELETE` | `/api/flags/:key` | Yes | Delete a flag |
@@ -371,7 +377,7 @@ The dispatch payload includes the flag key and timestamp:
 
 ### Authentication
 
-Write operations and the resolve endpoint require a Bearer token (API token created in the dashboard):
+All endpoints require a Bearer token (Auth0 JWT or API token created in the dashboard):
 
 ```bash
 curl -X POST https://flags.example.com/api/flags \
@@ -380,7 +386,7 @@ curl -X POST https://flags.example.com/api/flags \
   -d '{"key": "new_feature", "value": "true", "type": "runtime"}'
 ```
 
-**App-scoped tokens:** When creating an API token, you can optionally set an `app_id` to restrict the token to only resolve flags for that app. Tokens without an `app_id` (unscoped) can resolve flags for any app and are used for dashboard/CI operations.
+**App-scoped tokens:** When creating an API token, you can optionally set an `app_id` to restrict the token to only access flags for that app. App-scoped tokens are enforced on all endpoints — list, get, resolve, create, update, and delete. Tokens without an `app_id` (unscoped) can access flags for any app and are used for dashboard/CI operations.
 
 ### Request/Response Examples
 

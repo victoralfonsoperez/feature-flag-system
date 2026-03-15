@@ -56,36 +56,6 @@ export function setAccessTokenGetter(getter: () => Promise<string>): void {
   accessTokenGetter = getter;
 }
 
-async function request<T>(
-  path: string,
-  options?: RequestInit,
-): Promise<T> {
-  const baseUrl = getBaseUrl();
-  const settings = getSettings();
-  const fetchOptions: RequestInit = { ...options };
-
-  // Build auth headers: prefer API token from settings, then Auth0 token
-  const headers: Record<string, string> = {
-    ...(options?.headers as Record<string, string> || {}),
-  };
-
-  if (settings.apiToken) {
-    headers.Authorization = `Bearer ${settings.apiToken}`;
-  }
-
-  fetchOptions.headers = headers;
-
-  const res = await fetch(`${baseUrl}${path}`, fetchOptions);
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.error ?? res.statusText);
-  }
-
-  if (res.status === 204) return undefined as T;
-  return res.json();
-}
-
 async function authedRequest<T>(
   path: string,
   options?: RequestInit,
@@ -149,12 +119,12 @@ export function getFlags(env?: Environment, appId?: string): Promise<Flag[]> {
   if (env) params.set('env', env);
   if (appId) params.set('app_id', appId);
   const query = params.toString() ? `?${params}` : '';
-  return request<Flag[]>(`/flags${query}`);
+  return authedRequest<Flag[]>(`/flags${query}`);
 }
 
 export function getFlag(key: string, appId?: string): Promise<Flag> {
   const query = appId ? `?app_id=${encodeURIComponent(appId)}` : '';
-  return request<Flag>(`/flags/${encodeURIComponent(key)}${query}`);
+  return authedRequest<Flag>(`/flags/${encodeURIComponent(key)}${query}`);
 }
 
 export function createFlag(input: CreateFlagInput): Promise<Flag> {
