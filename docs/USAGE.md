@@ -43,7 +43,7 @@ The Feature Flag System supports two scenarios:
 
 2. **Log in via Auth0** — visit the dashboard (locally at `http://localhost:5173`, or the deployed URL). You'll be redirected to Auth0 to sign in or create an account.
 
-3. **Create an API token** — once logged in, navigate to Settings and create an API token. Copy the token immediately; it is only shown once.
+3. **Create an API token** — once logged in, navigate to Settings and create an API token. Copy the token immediately; it is only shown once. For SDK/client apps, create an app-scoped token by specifying an App ID — this restricts the token to only read flags for that app.
 
 4. **Create some flags** — use the dashboard or API to create flags (see [Managing Flags via Dashboard](#managing-flags-via-dashboard) or [API Reference](#api-reference-quick)).
 
@@ -77,6 +77,8 @@ function App() {
     <FlagProvider
       serviceUrl="https://flags.example.com"
       environment="production"
+      apiKey="your-sdk-api-token"
+      appId="my-app"
       userId={currentUser.id}
       defaults={{ dark_mode: 'false', checkout_version: 'v1' }}
     >
@@ -86,6 +88,8 @@ function App() {
 }
 ```
 
+> **Note:** The `apiKey` is required — the resolve endpoint requires authentication. Create an app-scoped API token in the dashboard for each consuming app. App-scoped tokens can only read flags for their assigned `app_id`.
+
 #### `FlagProvider` Props
 
 | Prop | Type | Required | Default | Description |
@@ -93,6 +97,8 @@ function App() {
 | `serviceUrl` | `string` | Yes | — | Base URL of the Flag Service API |
 | `environment` | `string` | No | `'production'` | Environment to resolve flags for (`development`, `staging`, `production`) |
 | `userId` | `string` | No | — | User identifier for A/B test variant bucketing |
+| `appId` | `string` | No | `'default'` | App ID for multi-app flag scoping |
+| `apiKey` | `string` | No | — | API token for authenticating with the resolve endpoint (sent as `Authorization: Bearer` header) |
 | `defaults` | `Record<string, string>` | No | `{}` | Fallback values used before flags load or if the API is unreachable |
 | `cacheTtl` | `number` | No | `0` | Cache TTL in seconds. Set to `0` to disable caching. |
 | `onVariantAssigned` | `(flagKey, variantName, userId) => void` | No | — | Called when a flag with variants is resolved for a user. Use for analytics tracking. |
@@ -190,7 +196,8 @@ Build-time flags are fetched once during your build process and baked into the b
 ### Fetch flags at build time
 
 ```bash
-curl "https://flags.example.com/api/flags/resolve?type=build-time&env=production"
+curl "https://flags.example.com/api/flags/resolve?type=build-time&env=production" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 
 Response:
@@ -212,7 +219,8 @@ Response:
 import { defineConfig } from 'vite';
 
 const flags = await fetch(
-  'https://flags.example.com/api/flags/resolve?type=build-time&env=production'
+  'https://flags.example.com/api/flags/resolve?type=build-time&env=production',
+  { headers: { Authorization: `Bearer ${process.env.FLAG_API_TOKEN}` } }
 ).then((r) => r.json());
 
 export default defineConfig({
@@ -256,7 +264,8 @@ Generate a script tag at build time:
 
 ```bash
 #!/bin/bash
-FLAGS=$(curl -s "https://flags.example.com/api/flags/resolve?type=build-time&env=production")
+FLAGS=$(curl -s "https://flags.example.com/api/flags/resolve?type=build-time&env=production" \
+  -H "Authorization: Bearer $FLAG_API_TOKEN")
 echo "<script>window.__FLAGS__ = ${FLAGS};</script>" > public/flags.js
 ```
 
@@ -320,16 +329,19 @@ The dispatch payload includes the flag key and timestamp:
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/flags` | No | List all flags (filterable by `type` and `env` query params) |
-| `GET` | `/api/flags/resolve` | No | Resolve flags for a client (query params: `type`, `env`, `user_id`) |
+| `GET` | `/api/flags` | No | List all flags (filterable by `type`, `env`, `app_id` query params) |
+| `GET` | `/api/flags/resolve` | Yes | Resolve flags for a client (query params: `type`, `env`, `user_id`, `app_id`). App-scoped tokens can only resolve their own `app_id`. |
 | `GET` | `/api/flags/:key` | No | Get a single flag by key |
 | `POST` | `/api/flags` | Yes | Create a new flag |
 | `PUT` | `/api/flags/:key` | Yes | Update a flag |
 | `DELETE` | `/api/flags/:key` | Yes | Delete a flag |
+| `GET` | `/api/tokens` | Yes | List API tokens for the current user |
+| `POST` | `/api/tokens` | Yes | Create an API token (optional `app_id` for app-scoped tokens) |
+| `DELETE` | `/api/tokens/:id` | Yes | Revoke an API token |
 
 ### Authentication
 
-Write operations require a Bearer token (API token created in the dashboard):
+Write operations and the resolve endpoint require a Bearer token (API token created in the dashboard):
 
 ```bash
 curl -X POST https://flags.example.com/api/flags \
@@ -338,12 +350,15 @@ curl -X POST https://flags.example.com/api/flags \
   -d '{"key": "new_feature", "value": "true", "type": "runtime"}'
 ```
 
+**App-scoped tokens:** When creating an API token, you can optionally set an `app_id` to restrict the token to only resolve flags for that app. Tokens without an `app_id` (unscoped) can resolve flags for any app and are used for dashboard/CI operations.
+
 ### Request/Response Examples
 
 #### Resolve flags
 
 ```bash
-curl "https://flags.example.com/api/flags/resolve?type=runtime&env=production&user_id=user-123"
+curl "https://flags.example.com/api/flags/resolve?type=runtime&env=production&user_id=user-123" \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 
 ```json
@@ -564,7 +579,9 @@ The callback is called once per variant flag after flags are fetched from the AP
 
 **Service unreachable** — if the SDK cannot reach the API, it falls back to the `defaults` you provided to `FlagProvider`. Your app will still render with fallback values.
 
-**401 Unauthorized errors** — check that your API token is valid and included in the `Authorization: Bearer <token>` header. Tokens are only shown once at creation; create a new one if lost.
+**401 Unauthorized errors** — check that your API token is valid and included in the `Authorization: Bearer <token>` header. Tokens are only shown once at creation; create a new one if lost. The resolve endpoint (`/api/flags/resolve`) requires authentication.
+
+**403 Forbidden on resolve** — if you're using an app-scoped token, the `app_id` query parameter must match the token's scope. An app-scoped token cannot resolve flags for a different app. Use an unscoped token or Auth0 JWT to resolve flags for any app.
 
 **CORS issues** — if your app and the API are on different origins, ensure the API is configured to allow your app's origin. The Fastify API uses `@fastify/cors`; check the CORS configuration in the API setup.
 

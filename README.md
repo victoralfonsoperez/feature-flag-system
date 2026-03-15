@@ -76,9 +76,9 @@ The system uses **Auth0** for dashboard user authentication and **API tokens** f
 │                     EXTERNAL CLIENT (API TOKEN)                          │
 │                                                                          │
 │  Dashboard: Create token ──▶ API returns plaintext token (once)          │
-│                               Stores SHA-256 hash in api_tokens          │
+│    optional app_id scope      Stores SHA-256 hash in api_tokens          │
 │                                                                          │
-│  curl/CI ──request──▶ API                                                │
+│  curl/CI/SDK ──request──▶ API                                            │
 │            Authorization: Bearer <token>                                 │
 │                           │                                              │
 │                           ├─▶ try Auth0 JWT verification first           │
@@ -86,8 +86,12 @@ The system uses **Auth0** for dashboard user authentication and **API tokens** f
 │                           ├─▶ SHA-256 hash the token                     │
 │                           ├─▶ lookup hash in api_tokens                  │
 │                           ├─▶ update last_used_at                        │
-│                           ├─▶ attach user to request                     │
+│                           ├─▶ attach user + appId scope to request       │
 │           ◀── response ───┘                                              │
+│                                                                          │
+│  App-scoped tokens: when a token has app_id set, the /resolve            │
+│  endpoint enforces that the requested app_id matches the token's         │
+│  scope (403 on mismatch). Unscoped tokens can resolve any app.           │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -98,7 +102,8 @@ The system uses **Auth0** for dashboard user authentication and **API tokens** f
 - **Role-based access** — roles extracted from custom `https://kanary.dev/roles` claim in the Auth0 token
 - **JWKS caching** — Auth0 public keys fetched once and cached in memory
 - **API tokens stored as SHA-256 hashes** — plaintext shown only once at creation
-- **Public reads, authenticated writes** — `GET /api/flags` is public; all mutations require auth
+- **Authenticated resolve, public list** — `GET /api/flags/resolve` requires a Bearer token; tokens can be scoped to a specific `app_id` for isolation between consuming apps
+- **Public flag listing, authenticated writes** — `GET /api/flags` is public; all mutations require auth
 
 ## Packages
 

@@ -364,6 +364,39 @@ describe('FlagProvider caching', () => {
     expect(sessionStorage.getItem(defaultKey)).toBeNull();
   });
 
+  it('passes apiKey as Authorization header in fetch', async () => {
+    mockFetch.mockReturnValue(jsonResponse({ dark_mode: 'true' }));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+          apiKey: 'my-secret-token',
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    expect(mockFetch).toHaveBeenCalledOnce();
+    const fetchOptions = mockFetch.mock.calls[0][1] as RequestInit;
+    expect((fetchOptions.headers as Record<string, string>).Authorization).toBe('Bearer my-secret-token');
+  });
+
+  it('does not send Authorization header when apiKey is not set', async () => {
+    mockFetch.mockReturnValue(jsonResponse({ dark_mode: 'true' }));
+
+    await act(async () => {
+      render(
+        createElement(FlagProvider, {
+          serviceUrl: 'http://localhost:3100',
+        }, createElement(FlagDisplay)),
+      );
+    });
+
+    expect(mockFetch).toHaveBeenCalledOnce();
+    const fetchOptions = mockFetch.mock.calls[0][1] as RequestInit;
+    expect(fetchOptions.headers).toBeUndefined();
+  });
+
   it('keeps cached values on fetch error when cache exists', async () => {
     const cacheKey = 'ff-sdk-cache:http://localhost:3100:production';
     sessionStorage.setItem(cacheKey, JSON.stringify({

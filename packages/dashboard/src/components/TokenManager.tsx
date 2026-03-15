@@ -3,11 +3,12 @@ import type { FormEvent } from 'react';
 import { getTokens, createToken, deleteToken } from '../api';
 import { useToast } from './Toast';
 
-type Token = { id: number; name: string; created_at: string; last_used_at: string | null };
+type Token = { id: number; name: string; created_at: string; last_used_at: string | null; app_id: string | null };
 
 export default function TokenManager() {
   const [tokens, setTokens] = useState<Token[]>([]);
   const [name, setName] = useState('');
+  const [appId, setAppId] = useState('');
   const [newToken, setNewToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -32,9 +33,10 @@ export default function TokenManager() {
     e.preventDefault();
     setError('');
     try {
-      const data = await createToken(name);
+      const data = await createToken(name, appId || undefined);
       setNewToken(data.token);
       setName('');
+      setAppId('');
       await loadTokens();
       showToast('Token created', 'success');
     } catch (err) {
@@ -69,6 +71,13 @@ export default function TokenManager() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="flex-1 border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200"
+        />
+        <input
+          type="text"
+          placeholder="App ID (optional, for SDK tokens)"
+          value={appId}
+          onChange={(e) => setAppId(e.target.value)}
+          className="w-56 border border-gray-600 rounded-md px-3 py-2 text-sm bg-gray-800 text-gray-200"
         />
         <button
           type="submit"
@@ -106,6 +115,7 @@ export default function TokenManager() {
           <thead>
             <tr className="border-b border-gray-700 text-left text-sm text-gray-400">
               <th className="px-4 py-3">Name</th>
+              <th className="px-4 py-3">Scope</th>
               <th className="px-4 py-3">Created</th>
               <th className="px-4 py-3">Last Used</th>
               <th className="px-4 py-3"></th>
@@ -115,6 +125,7 @@ export default function TokenManager() {
             {tokens.map((token) => (
               <tr key={token.id} className="border-b border-gray-800">
                 <td className="px-4 py-3 text-sm font-medium text-gray-200">{token.name}</td>
+                <td className="px-4 py-3 text-sm text-gray-400">{token.app_id ?? 'All apps'}</td>
                 <td className="px-4 py-3 text-sm text-gray-400">{token.created_at}</td>
                 <td className="px-4 py-3 text-sm text-gray-400">
                   {token.last_used_at ?? 'Never'}

@@ -10,6 +10,8 @@ export interface FlagProviderProps {
   userId?: string;
   /** App ID for multi-app scoping. Defaults to 'default'. */
   appId?: string;
+  /** API key (token) for authenticating with the resolve endpoint. */
+  apiKey?: string;
   defaults?: FlagValues;
   /** Cache TTL in seconds. Set to 0 to disable caching. Default: 0 (disabled). */
   cacheTtl?: number;
@@ -60,6 +62,7 @@ export function FlagProvider({
   environment = 'production',
   userId,
   appId,
+  apiKey,
   defaults = {},
   cacheTtl = 0,
   onVariantAssigned,
@@ -79,7 +82,12 @@ export function FlagProvider({
     if (userId) params.set('user_id', userId);
     if (appId) params.set('app_id', appId);
 
-    fetch(`${serviceUrl}/api/flags/resolve?${params}`)
+    const fetchOptions: RequestInit = {};
+    if (apiKey) {
+      fetchOptions.headers = { Authorization: `Bearer ${apiKey}` };
+    }
+
+    fetch(`${serviceUrl}/api/flags/resolve?${params}`, fetchOptions)
       .then((res) => res.json())
       .then((data: Record<string, unknown>) => {
         const variantsMeta = data._variants as Record<string, { variant: string; flagKey: string }> | undefined;

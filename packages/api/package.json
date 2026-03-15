@@ -9,7 +9,7 @@
     "start": "node dist/server.js",
     "test": "vitest run",
     "test:unit": "vitest run",
-    "test:integration": "vitest run --exclude '**/node_modules/**' --exclude '**/dist/**' integration",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:all": "vitest run --exclude '**/node_modules/**' --exclude '**/dist/**'",
     "test:db:up": "docker compose -f ../../docker-compose.test.yml up -d",
     "test:db:down": "docker compose -f ../../docker-compose.test.yml down",

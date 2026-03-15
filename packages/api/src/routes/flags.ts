@@ -29,7 +29,7 @@ export async function flagRoutes(app: FastifyInstance) {
   });
 
   // GET /api/flags/resolve — resolve flags for a client (runtime + A/B)
-  app.get('/resolve', async (request: FastifyRequest, reply: FastifyReply) => {
+  app.get('/resolve', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { env, type, user_id, app_id } = request.query as {
       env?: string;
       type?: string;
@@ -37,6 +37,11 @@ export async function flagRoutes(app: FastifyInstance) {
       app_id?: string;
     };
     const appId = app_id ?? 'default';
+
+    // If the token is scoped to an app, enforce it matches the requested app_id
+    if (request.user!.appId && request.user!.appId !== appId) {
+      return reply.status(403).send({ error: 'Token is not authorized for this app', statusCode: 403 });
+    }
 
     let sql = 'SELECT * FROM flags WHERE app_id = ?';
     const params: string[] = [appId];

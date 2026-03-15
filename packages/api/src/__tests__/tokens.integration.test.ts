@@ -148,4 +148,43 @@ describe('POST /api/tokens', () => {
     });
     expect(res.statusCode).toBe(404);
   });
+
+  it('creates a token with app_id scope', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/tokens',
+      headers: { authorization: authHeader },
+      payload: { name: 'SDK Token', app_id: 'my-app' },
+    });
+    expect(res.statusCode).toBe(201);
+    const body = res.json();
+    expect(body.name).toBe('SDK Token');
+    expect(body.app_id).toBe('my-app');
+    expect(body.token).toBeDefined();
+  });
+
+  it('creates a token without app_id (null)', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/tokens',
+      headers: { authorization: authHeader },
+      payload: { name: 'Dashboard Token' },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().app_id).toBeNull();
+  });
+
+  it('lists tokens with app_id field', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/tokens',
+      headers: { authorization: authHeader },
+    });
+    const tokens = res.json();
+    expect(tokens.length).toBeGreaterThan(0);
+    const sdkToken = tokens.find((t: { name: string }) => t.name === 'SDK Token');
+    expect(sdkToken.app_id).toBe('my-app');
+    const dashToken = tokens.find((t: { name: string }) => t.name === 'Dashboard Token');
+    expect(dashToken.app_id).toBeNull();
+  });
 });
