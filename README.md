@@ -89,9 +89,9 @@ The system uses **Auth0** for dashboard user authentication and **API tokens** f
 │                           ├─▶ attach user + appId scope to request       │
 │           ◀── response ───┘                                              │
 │                                                                          │
-│  App-scoped tokens: when a token has app_id set, the /resolve            │
-│  endpoint enforces that the requested app_id matches the token's         │
-│  scope (403 on mismatch). Unscoped tokens can resolve any app.           │
+│  App-scoped tokens: when a token has app_id set, all endpoints           │
+│  enforce that the requested app_id matches the token's scope             │
+│  (403 on mismatch). Unscoped tokens can access any app.                  │
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -102,8 +102,8 @@ The system uses **Auth0** for dashboard user authentication and **API tokens** f
 - **Role-based access** — roles extracted from custom `https://kanary.dev/roles` claim in the Auth0 token
 - **JWKS caching** — Auth0 public keys fetched once and cached in memory
 - **API tokens stored as SHA-256 hashes** — plaintext shown only once at creation
-- **Authenticated resolve, public list** — `GET /api/flags/resolve` requires a Bearer token; tokens can be scoped to a specific `app_id` for isolation between consuming apps
-- **Public flag listing, authenticated writes** — `GET /api/flags` is public; all mutations require auth
+- **All endpoints authenticated** — every endpoint requires a Bearer token (Auth0 JWT or API token); only `/health` is public
+- **App-scoped token enforcement** — tokens with `app_id` set can only access flags for that app across all endpoints (list, get, resolve, create, update, delete); unscoped tokens and Auth0 JWTs can access any app
 
 ## Packages
 

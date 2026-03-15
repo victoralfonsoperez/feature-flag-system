@@ -329,9 +329,9 @@ The dispatch payload includes the flag key and timestamp:
 
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/flags` | No | List all flags (filterable by `type`, `env`, `app_id` query params) |
-| `GET` | `/api/flags/resolve` | Yes | Resolve flags for a client (query params: `type`, `env`, `user_id`, `app_id`). App-scoped tokens can only resolve their own `app_id`. |
-| `GET` | `/api/flags/:key` | No | Get a single flag by key |
+| `GET` | `/api/flags` | Yes | List all flags (filterable by `type`, `env`, `app_id` query params) |
+| `GET` | `/api/flags/resolve` | Yes | Resolve flags for a client (query params: `type`, `env`, `user_id`, `app_id`) |
+| `GET` | `/api/flags/:key` | Yes | Get a single flag by key |
 | `POST` | `/api/flags` | Yes | Create a new flag |
 | `PUT` | `/api/flags/:key` | Yes | Update a flag |
 | `DELETE` | `/api/flags/:key` | Yes | Delete a flag |
@@ -341,7 +341,7 @@ The dispatch payload includes the flag key and timestamp:
 
 ### Authentication
 
-Write operations and the resolve endpoint require a Bearer token (API token created in the dashboard):
+All endpoints require a Bearer token (Auth0 JWT or API token created in the dashboard):
 
 ```bash
 curl -X POST https://flags.example.com/api/flags \
@@ -350,7 +350,7 @@ curl -X POST https://flags.example.com/api/flags \
   -d '{"key": "new_feature", "value": "true", "type": "runtime"}'
 ```
 
-**App-scoped tokens:** When creating an API token, you can optionally set an `app_id` to restrict the token to only resolve flags for that app. Tokens without an `app_id` (unscoped) can resolve flags for any app and are used for dashboard/CI operations.
+**App-scoped tokens:** When creating an API token, you can optionally set an `app_id` to restrict the token to only access flags for that app. App-scoped tokens are enforced on all endpoints — list, get, resolve, create, update, and delete. Tokens without an `app_id` (unscoped) can access flags for any app and are used for dashboard/CI operations.
 
 ### Request/Response Examples
 

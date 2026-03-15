@@ -71,7 +71,7 @@ afterAll(async () => {
 
 describe('GET /api/flags', () => {
   it('returns all seeded flags', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/flags' });
+    const res = await app.inject({ method: 'GET', url: '/api/flags', headers: { authorization: authHeader } });
     expect(res.statusCode).toBe(200);
     const flags = res.json() as FlagRow[];
     expect(flags.length).toBe(6);
@@ -79,29 +79,34 @@ describe('GET /api/flags', () => {
   });
 
   it('filters by type', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/flags?type=build-time' });
+    const res = await app.inject({ method: 'GET', url: '/api/flags?type=build-time', headers: { authorization: authHeader } });
     const flags = res.json() as FlagRow[];
     expect(flags.length).toBe(2);
     expect(flags.every((f) => f.type === 'build-time')).toBe(true);
   });
 
   it('filters by environment', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/flags?env=staging' });
+    const res = await app.inject({ method: 'GET', url: '/api/flags?env=staging', headers: { authorization: authHeader } });
     const flags = res.json() as FlagRow[];
     expect(flags.length).toBe(1);
     expect(flags[0].key).toBe('enable_signup');
   });
 
   it('filters by type and environment together', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/flags?type=runtime&env=production' });
+    const res = await app.inject({ method: 'GET', url: '/api/flags?type=runtime&env=production', headers: { authorization: authHeader } });
     const flags = res.json() as FlagRow[];
     expect(flags.every((f) => f.type === 'runtime' && f.environment === 'production')).toBe(true);
   });
 
   it('scopes by app_id and returns empty for unknown app', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/flags?app_id=unknown-app' });
+    const res = await app.inject({ method: 'GET', url: '/api/flags?app_id=unknown-app', headers: { authorization: authHeader } });
     const flags = res.json() as FlagRow[];
     expect(flags.length).toBe(0);
+  });
+
+  it('returns 401 without auth', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/flags' });
+    expect(res.statusCode).toBe(401);
   });
 });
 
@@ -109,7 +114,7 @@ describe('GET /api/flags', () => {
 
 describe('GET /api/flags/:key', () => {
   it('returns a single flag by key', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/flags/enable_dark_mode' });
+    const res = await app.inject({ method: 'GET', url: '/api/flags/enable_dark_mode', headers: { authorization: authHeader } });
     expect(res.statusCode).toBe(200);
     const flag = res.json() as FlagRow;
     expect(flag.key).toBe('enable_dark_mode');
@@ -119,9 +124,14 @@ describe('GET /api/flags/:key', () => {
   });
 
   it('returns 404 for missing flag', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/flags/nonexistent_flag' });
+    const res = await app.inject({ method: 'GET', url: '/api/flags/nonexistent_flag', headers: { authorization: authHeader } });
     expect(res.statusCode).toBe(404);
     expect(res.json().error).toBe('Flag not found');
+  });
+
+  it('returns 401 without auth', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/flags/enable_dark_mode' });
+    expect(res.statusCode).toBe(401);
   });
 });
 
@@ -269,7 +279,7 @@ describe('DELETE /api/flags/:key', () => {
     });
     expect(res.statusCode).toBe(204);
 
-    const check = await app.inject({ method: 'GET', url: '/api/flags/to_delete' });
+    const check = await app.inject({ method: 'GET', url: '/api/flags/to_delete', headers: { authorization: authHeader } });
     expect(check.statusCode).toBe(404);
   });
 
@@ -286,7 +296,22 @@ describe('DELETE /api/flags/:key', () => {
 
 // ── Auth middleware blocks mutating routes ───────────────────────────────
 
-describe('auth middleware blocks mutating routes without valid token', () => {
+describe('auth middleware blocks all routes without valid token', () => {
+  it('GET list returns 401 without auth', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/flags' });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('GET single flag returns 401 without auth', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/flags/enable_dark_mode' });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('GET /resolve returns 401 without auth', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/flags/resolve' });
+    expect(res.statusCode).toBe(401);
+  });
+
   it('POST returns 401 without auth', async () => {
     const res = await app.inject({
       method: 'POST',
@@ -311,16 +336,6 @@ describe('auth middleware blocks mutating routes without valid token', () => {
       url: '/api/flags/enable_dark_mode',
     });
     expect(res.statusCode).toBe(401);
-  });
-
-  it('GET list and single flag routes remain accessible without auth', async () => {
-    const list = await app.inject({ method: 'GET', url: '/api/flags' });
-    expect(list.statusCode).toBe(200);
-  });
-
-  it('GET /resolve returns 401 without auth', async () => {
-    const resolve = await app.inject({ method: 'GET', url: '/api/flags/resolve' });
-    expect(resolve.statusCode).toBe(401);
   });
 });
 
@@ -466,7 +481,7 @@ describe('multi-app scoping', () => {
   });
 
   it('returns flags scoped to app_id', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/flags?app_id=app1' });
+    const res = await app.inject({ method: 'GET', url: '/api/flags?app_id=app1', headers: { authorization: authHeader } });
     const flags = res.json() as FlagRow[];
     expect(flags.length).toBe(1);
     expect(flags[0].key).toBe('shared_key');
@@ -474,7 +489,7 @@ describe('multi-app scoping', () => {
   });
 
   it('GET single flag is scoped by app_id', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/flags/shared_key?app_id=app2' });
+    const res = await app.inject({ method: 'GET', url: '/api/flags/shared_key?app_id=app2', headers: { authorization: authHeader } });
     expect(res.statusCode).toBe(200);
     expect(res.json().value).toBe('app2-value');
   });
@@ -489,7 +504,7 @@ describe('multi-app scoping', () => {
     expect(res.statusCode).toBe(200);
     expect(res.json().value).toBe('app1-updated');
 
-    const app2 = await app.inject({ method: 'GET', url: '/api/flags/shared_key?app_id=app2' });
+    const app2 = await app.inject({ method: 'GET', url: '/api/flags/shared_key?app_id=app2', headers: { authorization: authHeader } });
     expect(app2.json().value).toBe('app2-value');
   });
 
@@ -514,10 +529,10 @@ describe('multi-app scoping', () => {
     });
     expect(res.statusCode).toBe(204);
 
-    const check1 = await app.inject({ method: 'GET', url: '/api/flags/to_delete_multi?app_id=app1' });
+    const check1 = await app.inject({ method: 'GET', url: '/api/flags/to_delete_multi?app_id=app1', headers: { authorization: authHeader } });
     expect(check1.statusCode).toBe(404);
 
-    const check2 = await app.inject({ method: 'GET', url: '/api/flags/to_delete_multi?app_id=app2' });
+    const check2 = await app.inject({ method: 'GET', url: '/api/flags/to_delete_multi?app_id=app2', headers: { authorization: authHeader } });
     expect(check2.statusCode).toBe(200);
     expect(check2.json().value).toBe('v2');
   });
@@ -619,5 +634,61 @@ describe('app-scoped API token on /resolve', () => {
       headers: { authorization: authHeader },
     });
     expect(res.statusCode).toBe(200);
+  });
+
+  it('scoped token can list flags for its own app', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/flags?app_id=app1',
+      headers: { authorization: `Bearer ${scopedTokenPlaintext}` },
+    });
+    expect(res.statusCode).toBe(200);
+  });
+
+  it('scoped token cannot list flags for a different app', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/flags?app_id=app2',
+      headers: { authorization: `Bearer ${scopedTokenPlaintext}` },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('scoped token cannot get a single flag from a different app', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/flags/shared_key?app_id=app2',
+      headers: { authorization: `Bearer ${scopedTokenPlaintext}` },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('scoped token cannot create a flag in a different app', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/flags',
+      headers: { authorization: `Bearer ${scopedTokenPlaintext}` },
+      payload: { key: 'scope_test', value: 'x', type: 'runtime', app_id: 'app2' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('scoped token cannot update a flag in a different app', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/api/flags/shared_key?app_id=app2',
+      headers: { authorization: `Bearer ${scopedTokenPlaintext}` },
+      payload: { value: 'hacked' },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('scoped token cannot delete a flag in a different app', async () => {
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/api/flags/shared_key?app_id=app2',
+      headers: { authorization: `Bearer ${scopedTokenPlaintext}` },
+    });
+    expect(res.statusCode).toBe(403);
   });
 });

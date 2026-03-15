@@ -8,9 +8,14 @@ import '../types.js';
 export async function flagRoutes(app: FastifyInstance) {
   await app.register(rateLimit, { max: 100, timeWindow: '1 minute' });
   // GET /api/flags — list all flags, filterable by type, env, and app_id
-  app.get('/', async (request: FastifyRequest, reply: FastifyReply) => {
+  app.get('/', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { type, env, app_id } = request.query as { type?: string; env?: string; app_id?: string };
     const appId = app_id ?? 'default';
+
+    // Enforce app scope for app-scoped tokens
+    if (request.user!.appId && request.user!.appId !== appId) {
+      return reply.status(403).send({ error: 'Token is not authorized for this app', statusCode: 403 });
+    }
 
     let sql = 'SELECT * FROM flags WHERE app_id = ?';
     const params: string[] = [appId];
@@ -73,10 +78,15 @@ export async function flagRoutes(app: FastifyInstance) {
   });
 
   // GET /api/flags/:key — get a single flag
-  app.get('/:key', async (request: FastifyRequest, reply: FastifyReply) => {
+  app.get('/:key', { preHandler: [requireAuth] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { key } = request.params as { key: string };
     const { app_id } = request.query as { app_id?: string };
     const appId = app_id ?? 'default';
+
+    // Enforce app scope for app-scoped tokens
+    if (request.user!.appId && request.user!.appId !== appId) {
+      return reply.status(403).send({ error: 'Token is not authorized for this app', statusCode: 403 });
+    }
 
     const flag = await app.db.getOne('SELECT * FROM flags WHERE app_id = ? AND key = ?', appId, key);
 
@@ -91,6 +101,11 @@ export async function flagRoutes(app: FastifyInstance) {
     const { key, value, type, environment, description, variants, app_id } =
       request.body as Partial<FlagRow>;
     const appId = app_id ?? 'default';
+
+    // Enforce app scope for app-scoped tokens
+    if (request.user!.appId && request.user!.appId !== appId) {
+      return reply.status(403).send({ error: 'Token is not authorized for this app', statusCode: 403 });
+    }
 
     if (!key || !value || !type) {
       return reply.status(400).send({ error: 'key, value, and type are required', statusCode: 400 });
@@ -142,6 +157,11 @@ export async function flagRoutes(app: FastifyInstance) {
     const { app_id } = request.query as { app_id?: string };
     const appId = app_id ?? 'default';
 
+    // Enforce app scope for app-scoped tokens
+    if (request.user!.appId && request.user!.appId !== appId) {
+      return reply.status(403).send({ error: 'Token is not authorized for this app', statusCode: 403 });
+    }
+
     const existing = await app.db.getOne<FlagRow>('SELECT * FROM flags WHERE app_id = ? AND key = ?', appId, key);
 
     if (!existing) {
@@ -182,6 +202,11 @@ export async function flagRoutes(app: FastifyInstance) {
     const { key } = request.params as { key: string };
     const { app_id } = request.query as { app_id?: string };
     const appId = app_id ?? 'default';
+
+    // Enforce app scope for app-scoped tokens
+    if (request.user!.appId && request.user!.appId !== appId) {
+      return reply.status(403).send({ error: 'Token is not authorized for this app', statusCode: 403 });
+    }
 
     const existing = await app.db.getOne<FlagRow>('SELECT * FROM flags WHERE app_id = ? AND key = ?', appId, key);
 
