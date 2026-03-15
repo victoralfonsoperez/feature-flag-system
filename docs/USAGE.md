@@ -53,11 +53,14 @@ The React SDK fetches flags from the API on page load and provides them via Reac
 
 ### Install
 
-The SDK is published to GitHub Packages. Add a `.npmrc` file to your project to configure the registry:
+The SDK is published to GitHub Packages. Configure the registry and authentication in a `.npmrc` file at the root of your project:
 
 ```
 @victoralfonsoperez:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}
 ```
+
+The `GH_PACKAGES_TOKEN` environment variable must be a GitHub Personal Access Token (classic) with the **`read:packages`** scope. Set it in your shell for local development and in your CI/hosting provider's environment variables for deployments.
 
 Then install:
 
@@ -66,6 +69,33 @@ npm install @victoralfonsoperez/feature-flags-sdk
 ```
 
 > The SDK requires `react >= 18` as a peer dependency.
+
+### Deployment
+
+When deploying an app that uses the SDK, you need to configure two things on your hosting provider (Netlify, Vercel, etc.):
+
+#### 1. GitHub Packages authentication
+
+The SDK is installed from GitHub Packages during the build. Your CI/hosting environment needs a `GH_PACKAGES_TOKEN` environment variable so `.npmrc` can authenticate.
+
+| Provider | Where to set |
+|---|---|
+| **Netlify** | Site settings > Environment variables |
+| **Vercel** | Project settings > Environment variables |
+| **GitHub Actions** | Repository secrets (`${{ secrets.GH_PACKAGES_TOKEN }}`) |
+
+Create a GitHub PAT (classic) with the **`read:packages`** scope. Do **not** commit the token directly — always use an environment variable reference in `.npmrc`.
+
+#### 2. Runtime environment variables
+
+The SDK's `FlagProvider` needs the API URL at runtime. Since Vite bakes `import.meta.env` values at build time, set these as environment variables on your hosting provider:
+
+| Variable | Description | Example |
+|---|---|---|
+| `VITE_API_URL` | Base URL of the Flag Service API (no trailing `/api`) | `https://kanary-api.onrender.com` |
+| `VITE_SDK_API_KEY` | API token for authenticating with the resolve endpoint (created in the dashboard) | `kry_abc123...` |
+
+> **Important:** `VITE_API_URL` must be the **base URL** without `/api` — the SDK appends `/api/flags/resolve` automatically. If this variable is not set, the SDK defaults to `http://localhost:3100`, which will silently fail in production (flags fall back to defaults).
 
 ### Wrap your app with `FlagProvider`
 
@@ -577,9 +607,18 @@ The callback is called once per variant flag after flags are fetched from the AP
 
 ## Troubleshooting
 
+**`npm install` fails with 401 Unauthorized from GitHub Packages** — your `.npmrc` is missing the auth token line, or `GH_PACKAGES_TOKEN` is not set. Make sure your `.npmrc` includes both lines:
+```
+@victoralfonsoperez:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GH_PACKAGES_TOKEN}
+```
+And that the environment variable is set with a valid GitHub PAT that has the `read:packages` scope. On Netlify/Vercel, add it under Site settings > Environment variables.
+
+**Flags stuck on defaults in production** — the most common cause is `VITE_API_URL` not being set on your hosting provider. Vite bakes environment variables at build time, so if the variable is missing during the build, the SDK defaults to `http://localhost:3100`, which silently fails. Set `VITE_API_URL` to your API's base URL (e.g., `https://kanary-api.onrender.com`) and trigger a redeploy.
+
 **Service unreachable** — if the SDK cannot reach the API, it falls back to the `defaults` you provided to `FlagProvider`. Your app will still render with fallback values.
 
-**401 Unauthorized errors** — check that your API token is valid and included in the `Authorization: Bearer <token>` header. Tokens are only shown once at creation; create a new one if lost. The resolve endpoint (`/api/flags/resolve`) requires authentication.
+**401 Unauthorized errors** — check that your API token is valid and included in the `Authorization: Bearer <token>` header. Tokens are only shown once at creation; create a new one if lost. The resolve endpoint (`/api/flags/resolve`) requires authentication. For deployed apps, ensure `VITE_SDK_API_KEY` is set on your hosting provider.
 
 **403 Forbidden on resolve** — if you're using an app-scoped token, the `app_id` query parameter must match the token's scope. An app-scoped token cannot resolve flags for a different app. Use an unscoped token or Auth0 JWT to resolve flags for any app.
 
