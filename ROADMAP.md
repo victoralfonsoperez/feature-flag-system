@@ -337,6 +337,45 @@ Migrate from custom JWT auth to Auth0 Universal Login.
 
 **Milestone:** Auth system migrated to Auth0 Universal Login. Local user management removed.
 
+## Phase 9 — App-Scoped API Tokens
+
+Add per-app API token scoping so each consuming app can only read its own flags via the resolve endpoint.
+
+### App-Scoped Tokens — Task Checklist
+
+#### API changes (done)
+- [x] Create `003_token_app_scope.sql` migration — add nullable `app_id` column to `api_tokens`
+- [x] Run migration 003 on startup alongside 001/002
+- [x] Update `ApiTokenRow` type with `app_id: string | null`
+- [x] Accept optional `app_id` in POST `/api/tokens` — store in DB and return in response
+- [x] Return `app_id` in GET `/api/tokens` listing
+- [x] Expose `appId` on `request.user` when authenticating via API token
+- [x] Add `requireAuth` to GET `/api/flags/resolve` endpoint
+- [x] Enforce app scope on resolve: if token has `app_id`, it must match the requested `app_id` (403 on mismatch)
+- [x] Auth0 users and unscoped tokens can resolve any app
+
+#### SDK changes (done)
+- [x] Add `apiKey` prop to `FlagProvider` — sent as `Authorization: Bearer` header in fetch
+
+#### Dashboard changes (done)
+- [x] Add optional "App ID" input to token creation form
+- [x] Show "Scope" column in token table (`app_id` or "All apps")
+- [x] Update `createToken()` API client to accept optional `app_id`
+
+#### Tests (done)
+- [x] Add integration tests: 401 without auth, 403 wrong scope, 200 correct scope, unscoped resolves any app
+- [x] Add token creation tests with/without `app_id`
+- [x] Add SDK tests for `apiKey` header
+- [x] Update dashboard TokenManager tests for `app_id` field
+- [x] Fix pre-existing integration test runner — create `vitest.integration.config.ts` with setup file for jose mock
+
+#### Documentation (done)
+- [x] Update README auth section and API token flow diagram
+- [x] Update USAGE.md — SDK props, API reference, resolve examples, troubleshooting
+- [x] Update ROADMAP.md with Phase 9
+
+**Milestone:** Resolve endpoint is authenticated and app-scoped. Each consuming app gets its own token.
+
 ---
 
 ## Summary

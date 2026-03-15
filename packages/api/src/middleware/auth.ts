@@ -24,9 +24,9 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
       // Strategy 2: API token (SHA256 hash lookup)
       const tokenHash = createHash('sha256').update(token).digest('hex');
       const row = await db.getOne<
-        Pick<ApiTokenRow, 'id' | 'created_by' | 'creator_email' | 'creator_role'>
+        Pick<ApiTokenRow, 'id' | 'created_by' | 'creator_email' | 'creator_role' | 'app_id'>
       >(
-        `SELECT id, created_by, creator_email, creator_role
+        `SELECT id, created_by, creator_email, creator_role, app_id
          FROM api_tokens
          WHERE token_hash = ?`,
         tokenHash,
@@ -39,6 +39,7 @@ export async function requireAuth(request: FastifyRequest, reply: FastifyReply) 
           email: row.creator_email || '',
           role: row.creator_role || 'viewer',
           source: 'api-token',
+          appId: row.app_id ?? undefined,
         };
         return;
       }

@@ -126,15 +126,15 @@ export function getMe(): Promise<{ user: { id: string; email: string; role: stri
 
 // Tokens
 
-export function getTokens(): Promise<{ id: number; name: string; created_at: string; last_used_at: string | null }[]> {
+export function getTokens(): Promise<{ id: number; name: string; created_at: string; last_used_at: string | null; app_id: string | null }[]> {
   return authedRequest('/tokens');
 }
 
-export function createToken(name: string): Promise<{ id: number; name: string; token: string }> {
+export function createToken(name: string, app_id?: string): Promise<{ id: number; name: string; token: string; app_id: string | null }> {
   return authedRequest('/tokens', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, ...(app_id ? { app_id } : {}) }),
   });
 }
 

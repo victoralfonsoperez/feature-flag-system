@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { createHash, randomBytes } from 'node:crypto';
 import Fastify, { FastifyInstance } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import { flagRoutes } from '../routes/flags.js';
@@ -312,12 +313,14 @@ describe('auth middleware blocks mutating routes without valid token', () => {
     expect(res.statusCode).toBe(401);
   });
 
-  it('GET routes remain accessible without auth', async () => {
+  it('GET list and single flag routes remain accessible without auth', async () => {
     const list = await app.inject({ method: 'GET', url: '/api/flags' });
     expect(list.statusCode).toBe(200);
+  });
 
+  it('GET /resolve returns 401 without auth', async () => {
     const resolve = await app.inject({ method: 'GET', url: '/api/flags/resolve' });
-    expect(resolve.statusCode).toBe(200);
+    expect(resolve.statusCode).toBe(401);
   });
 });
 
@@ -325,7 +328,7 @@ describe('auth middleware blocks mutating routes without valid token', () => {
 
 describe('GET /api/flags/resolve', () => {
   it('returns a key-value map of all flags with _variants metadata', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/flags/resolve' });
+    const res = await app.inject({ method: 'GET', url: '/api/flags/resolve', headers: { authorization: authHeader } });
     expect(res.statusCode).toBe(200);
     const resolved = res.json();
     expect(resolved).toHaveProperty('maintenance_mode', 'false');
@@ -334,14 +337,14 @@ describe('GET /api/flags/resolve', () => {
   });
 
   it('filters by type', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/flags/resolve?type=build-time' });
+    const res = await app.inject({ method: 'GET', url: '/api/flags/resolve?type=build-time', headers: { authorization: authHeader } });
     const resolved = res.json();
     expect(resolved).toHaveProperty('api_base_url');
     expect(resolved).not.toHaveProperty('maintenance_mode');
   });
 
   it('filters by environment', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/flags/resolve?env=staging' });
+    const res = await app.inject({ method: 'GET', url: '/api/flags/resolve?env=staging', headers: { authorization: authHeader } });
     const resolved = res.json();
     expect(resolved).toHaveProperty('enable_signup', 'true');
     // enable_signup + _variants
@@ -352,10 +355,12 @@ describe('GET /api/flags/resolve', () => {
     const res1 = await app.inject({
       method: 'GET',
       url: '/api/flags/resolve?env=production&user_id=user-123',
+      headers: { authorization: authHeader },
     });
     const res2 = await app.inject({
       method: 'GET',
       url: '/api/flags/resolve?env=production&user_id=user-123',
+      headers: { authorization: authHeader },
     });
     const resolved1 = res1.json();
     const resolved2 = res2.json();
@@ -368,6 +373,7 @@ describe('GET /api/flags/resolve', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/flags/resolve?env=production&user_id=user-123',
+      headers: { authorization: authHeader },
     });
     const resolved = res.json();
     expect(resolved._variants).toHaveProperty('cta_button_color');
@@ -380,6 +386,7 @@ describe('GET /api/flags/resolve', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/flags/resolve?env=production&user_id=user-123',
+      headers: { authorization: authHeader },
     });
     const resolved = res.json();
     expect(resolved._variants).not.toHaveProperty('maintenance_mode');
@@ -389,6 +396,7 @@ describe('GET /api/flags/resolve', () => {
     const res = await app.inject({
       method: 'GET',
       url: '/api/flags/resolve?env=production',
+      headers: { authorization: authHeader },
     });
     const resolved = res.json();
     expect(resolved._variants).toEqual({});
@@ -515,7 +523,7 @@ describe('multi-app scoping', () => {
   });
 
   it('resolve scopes by app_id', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/flags/resolve?app_id=app1' });
+    const res = await app.inject({ method: 'GET', url: '/api/flags/resolve?app_id=app1', headers: { authorization: authHeader } });
     const resolved = res.json();
     expect(resolved).toHaveProperty('shared_key', 'app1-updated');
     expect(resolved).not.toHaveProperty('enable_dark_mode');
@@ -527,5 +535,89 @@ describe('multi-app scoping', () => {
     );
     expect(log).toBeDefined();
     expect(log!.app_id).toBe('app1');
+  });
+});
+
+// ── App-scoped API token enforcement on /resolve ─────────────────────
+
+describe('app-scoped API token on /resolve', () => {
+  let scopedTokenPlaintext: string;
+  let unscopedTokenPlaintext: string;
+
+  beforeAll(async () => {
+    // Create an API token scoped to app1
+    scopedTokenPlaintext = randomBytes(32).toString('hex');
+    const scopedHash = createHash('sha256').update(scopedTokenPlaintext).digest('hex');
+    await db.run(
+      'INSERT INTO api_tokens (name, token_hash, created_by, creator_email, creator_role, app_id) VALUES (?, ?, ?, ?, ?, ?)',
+      'scoped-token', scopedHash, 'auth0|test-user-123', 'test@example.com', 'admin', 'app1',
+    );
+
+    // Create an unscoped API token
+    unscopedTokenPlaintext = randomBytes(32).toString('hex');
+    const unscopedHash = createHash('sha256').update(unscopedTokenPlaintext).digest('hex');
+    await db.run(
+      'INSERT INTO api_tokens (name, token_hash, created_by, creator_email, creator_role) VALUES (?, ?, ?, ?, ?)',
+      'unscoped-token', unscopedHash, 'auth0|test-user-123', 'test@example.com', 'admin',
+    );
+  });
+
+  it('returns 401 without any auth', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/flags/resolve' });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('allows scoped token to resolve its own app', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/flags/resolve?app_id=app1',
+      headers: { authorization: `Bearer ${scopedTokenPlaintext}` },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toHaveProperty('shared_key');
+  });
+
+  it('rejects scoped token resolving a different app with 403', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/flags/resolve?app_id=app2',
+      headers: { authorization: `Bearer ${scopedTokenPlaintext}` },
+    });
+    expect(res.statusCode).toBe(403);
+    expect(res.json().error).toMatch(/not authorized/);
+  });
+
+  it('rejects scoped token resolving default app with 403', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/flags/resolve',
+      headers: { authorization: `Bearer ${scopedTokenPlaintext}` },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('allows unscoped token to resolve any app', async () => {
+    const res1 = await app.inject({
+      method: 'GET',
+      url: '/api/flags/resolve?app_id=app1',
+      headers: { authorization: `Bearer ${unscopedTokenPlaintext}` },
+    });
+    expect(res1.statusCode).toBe(200);
+
+    const res2 = await app.inject({
+      method: 'GET',
+      url: '/api/flags/resolve?app_id=app2',
+      headers: { authorization: `Bearer ${unscopedTokenPlaintext}` },
+    });
+    expect(res2.statusCode).toBe(200);
+  });
+
+  it('allows Auth0 JWT to resolve any app', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/flags/resolve?app_id=app1',
+      headers: { authorization: authHeader },
+    });
+    expect(res.statusCode).toBe(200);
   });
 });

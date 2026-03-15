@@ -71,6 +71,10 @@ export async function initDatabase(connectionString?: string): Promise<Database>
     const migration002Path = resolve(__dirname, 'migrations', '002_auth0_migration.sql');
     const migration002Sql = readFileSync(migration002Path, 'utf-8');
     await client.query(migration002Sql);
+
+    const migration003Path = resolve(__dirname, 'migrations', '003_token_app_scope.sql');
+    const migration003Sql = readFileSync(migration003Path, 'utf-8');
+    await client.query(migration003Sql);
   } finally {
     client.release();
   }
@@ -141,4 +145,5 @@ export type ApiTokenRow = {
   creator_role: string | null;
   last_used_at: string | null;
   created_at: string;
+  app_id: string | null;
 };

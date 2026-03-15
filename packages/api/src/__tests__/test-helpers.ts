@@ -39,7 +39,11 @@ export async function createTestToken(claims: {
 
 /**
  * Mock the Auth0 JWKS verification so tests don't call a real endpoint.
- * Must be called before importing auth0.ts or after resetJWKS().
+ *
+ * For integration tests (run via vitest.integration.config.ts), the jose mock
+ * is set up in the setup file and reads the public key from globalThis.
+ * This function stores the public key there and also calls vi.mock as a
+ * fallback for unit tests.
  */
 export async function mockAuth0Verification() {
   const { publicKey } = await getKeyPair();
@@ -48,15 +52,18 @@ export async function mockAuth0Verification() {
   process.env.AUTH0_DOMAIN = 'test-tenant.us.auth0.com';
   process.env.AUTH0_AUDIENCE = 'https://api.kanary.dev';
 
-  // Mock the jose.createRemoteJWKSet to return our test public key
+  // Store the public key on globalThis so the setup-file mock can read it lazily
+  (globalThis as Record<string, unknown>).__TEST_PUBLIC_KEY__ = publicKey;
+
+  // vi.mock is hoisted — this works for unit tests but may not apply in
+  // integration tests where the setup file provides the mock instead.
   vi.mock('jose', async (importOriginal) => {
     const actual = await importOriginal<typeof import('jose')>();
     return {
       ...actual,
       createRemoteJWKSet: () => {
-        // Return a function that resolves the key for verification
         return async () => {
-          return publicKey;
+          return (globalThis as Record<string, unknown>).__TEST_PUBLIC_KEY__;
         };
       },
     };
