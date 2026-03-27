@@ -54,7 +54,7 @@ function convertParams(sql: string): string {
 export async function initDatabase(connectionString?: string): Promise<Database> {
   const connStr = connectionString ?? process.env.DATABASE_URL ?? 'postgresql://kanary:kanary@localhost:5432/kanary';
 
-  const isLocalhost = connStr.includes('localhost') || connStr.includes('127.0.0.1');
+  const isLocalhost = connStr.includes('localhost') || connStr.includes('127.0.0.1') || connStr.includes('@postgres:');
   const pool = new pg.Pool({
     connectionString: connStr,
     ssl: isLocalhost ? false : { rejectUnauthorized: false },
