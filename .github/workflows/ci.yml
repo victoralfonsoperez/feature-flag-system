@@ -19,8 +19,8 @@ on:
       - '.gitignore'
 
 jobs:
-  install:
-    name: Install dependencies
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,32 +32,10 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - uses: actions/cache/save@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
-
-  lint:
-    name: Lint
-    needs: install
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: latest
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-      - uses: actions/cache/restore@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm run lint
 
   test:
     name: Test
-    needs: install
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -83,17 +61,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      - uses: actions/cache/restore@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @feature-flags/api run test:all
       - run: pnpm --filter @feature-flags/dashboard test
       - run: pnpm --filter @victoralfonsoperez/feature-flags-sdk test --if-present
 
   build:
     name: Build
-    needs: install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -103,8 +78,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      - uses: actions/cache/restore@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - run: pnpm run build
