@@ -19,39 +19,23 @@ on:
       - '.gitignore'
 
 jobs:
-  install:
-    name: Install dependencies
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - uses: actions/cache/save@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
-
   lint:
     name: Lint
-    needs: install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      - uses: actions/cache/restore@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
-      - run: npm run lint
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint
 
   test:
     name: Test
-    needs: install
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -71,28 +55,29 @@ jobs:
       TEST_DATABASE_URL: postgresql://kanary_test:kanary_test@localhost:5433/kanary_test
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      - uses: actions/cache/restore@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
-      - run: npm run test:all -w packages/api
-      - run: npm test -w packages/dashboard
-      - run: npm test -w packages/sdk --if-present
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @feature-flags/api run test:all
+      - run: pnpm --filter @feature-flags/dashboard test
+      - run: pnpm --filter @victoralfonsoperez/feature-flags-sdk run --if-present test
 
   build:
     name: Build
-    needs: install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-      - uses: actions/cache/restore@v4
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
-      - run: npm run build
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build

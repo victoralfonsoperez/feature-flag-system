@@ -36,9 +36,9 @@ The Feature Flag System supports two scenarios:
    ```bash
    git clone <your-repo-url>
    cd feature-flag-system
-   nvm use
-   npm install
-   npm run dev
+   fnm use
+   pnpm install
+   pnpm dev
    ```
 
 2. **Log in via Auth0** — visit the dashboard (locally at `http://localhost:5173`, or the deployed URL). You'll be redirected to Auth0 to sign in or create an account.
@@ -71,7 +71,7 @@ The `GH_PACKAGES_TOKEN` environment variable must be a GitHub Personal Access To
 Then install:
 
 ```bash
-npm install @victoralfonsoperez/feature-flags-sdk
+pnpm add @victoralfonsoperez/feature-flags-sdk
 ```
 
 > The SDK requires `react >= 18` as a peer dependency.
@@ -339,12 +339,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
       - uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
-      - run: npm ci
-      - run: npm run build
-      - run: npm run deploy # your deploy step
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - run: pnpm run deploy # your deploy step
 ```
 
 The dispatch payload includes the flag key and timestamp:

@@ -121,7 +121,8 @@ See [docs/USAGE.md](./docs/USAGE.md) for a complete guide on integrating feature
 
 ### Prerequisites
 
-- Node.js (see `.nvmrc` for version)
+- Node.js (see `.nvmrc` for version) — use [fnm](https://github.com/Schniz/fnm) to manage Node versions
+- [pnpm](https://pnpm.io) package manager
 - An **Auth0 tenant** (free tier works)
 
 ### 1. Set up Auth0
@@ -190,23 +191,25 @@ VITE_AUTH0_CALLBACK_URL=http://localhost:5173
 ### 3. Run locally
 
 ```bash
-nvm use            # switch to the required Node version (see .nvmrc)
-npm install
-npm run dev        # start all packages in dev mode
+fnm use            # switch to the required Node version (see .nvmrc)
+pnpm install
+pnpm dev           # start all packages in dev mode
 ```
+
+> To install without running lifecycle scripts: `pnpm install --ignore-scripts`
 
 Visit `http://localhost:5173` — you'll be redirected to the Auth0 login page.
 
 ### API only
 
 ```bash
-npm run dev -w packages/api
+pnpm --filter @feature-flags/api dev
 ```
 
 ### Dashboard only
 
 ```bash
-npm run dev -w packages/dashboard
+pnpm --filter @feature-flags/dashboard dev
 ```
 
 ## Docker
@@ -255,17 +258,17 @@ docker compose down -v
 API tests require a running PostgreSQL instance. A separate test compose file is provided:
 
 ```bash
-docker compose -f docker-compose.test.yml up -d   # start test PostgreSQL on port 5433
-npm test -w packages/api                            # run API tests
-docker compose -f docker-compose.test.yml down      # stop test PostgreSQL
+docker compose -f docker-compose.test.yml up -d              # start test PostgreSQL on port 5433
+pnpm --filter @feature-flags/api test                        # run API tests
+docker compose -f docker-compose.test.yml down               # stop test PostgreSQL
 ```
 
 Or use the convenience scripts:
 
 ```bash
-npm run test:db:up -w packages/api    # start test PostgreSQL
-npm test -w packages/api              # run tests
-npm run test:db:down -w packages/api  # stop test PostgreSQL
+pnpm --filter @feature-flags/api test:db:up    # start test PostgreSQL
+pnpm --filter @feature-flags/api test          # run tests
+pnpm --filter @feature-flags/api test:db:down  # stop test PostgreSQL
 ```
 
 ### Environment Variables

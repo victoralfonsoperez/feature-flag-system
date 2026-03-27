@@ -71,8 +71,8 @@ VITE_AUTH0_CALLBACK_URL=http://localhost:5173
 
 ## 7. Verify
 
-1. Start the API: `npm run dev -w packages/api`
-2. Start the dashboard: `npm run dev -w packages/dashboard`
+1. Start the API: `pnpm --filter @feature-flags/api dev`
+2. Start the dashboard: `pnpm --filter @feature-flags/dashboard dev`
 3. Open the dashboard — you should be redirected to Auth0 login
 4. After authenticating, the dashboard should load with your user info
 5. Flag CRUD operations should work with the Auth0 Bearer token

@@ -4,7 +4,7 @@ Project conventions and rules for Claude Code.
 
 ## Project Structure
 
-Monorepo with npm workspaces:
+Monorepo with pnpm workspaces:
 
 - `packages/api` — Fastify REST API with PostgreSQL (pg), TypeScript
 - `packages/dashboard` — React + Vite + Tailwind CSS dashboard UI
@@ -17,20 +17,20 @@ Monorepo with npm workspaces:
 - Push the branch and create a PR to merge into `main`
 - Commit messages follow conventional commits: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`
 - **Before committing**, always run lint, tests, and build to verify changes:
-  1. `npm run lint -w packages/dashboard` — lint dashboard
-  2. `npm test -w packages/dashboard` — run dashboard tests
-  3. `npm run build -w packages/dashboard` — build dashboard
-  4. `npm run lint -w packages/api` — lint API
-  5. `npm test -w packages/api` — run API tests (requires test DB: `npm run test:db:up -w packages/api`)
-  6. `npm run build -w packages/api` — build API
+  1. `pnpm --filter @feature-flags/dashboard lint` — lint dashboard
+  2. `pnpm --filter @feature-flags/dashboard test` — run dashboard tests
+  3. `pnpm --filter @feature-flags/dashboard build` — build dashboard
+  4. `pnpm --filter @feature-flags/api lint` — lint API
+  5. `pnpm --filter @feature-flags/api test` — run API tests (requires test DB: `pnpm --filter @feature-flags/api test:db:up`)
+  6. `pnpm --filter @feature-flags/api build` — build API
   7. Only commit if all checks pass; fix any failures first
 
 ## Testing
 
 - Test framework: **Vitest** across all packages
 - Dashboard tests use **@testing-library/react**
-- Run dashboard tests: `npm test -w packages/dashboard`
-- Run API tests: `npm test -w packages/api`
+- Run dashboard tests: `pnpm --filter @feature-flags/dashboard test`
+- Run API tests: `pnpm --filter @feature-flags/api test`
 - Every new component or feature must include tests
 - Tests live next to source files: `Component.test.tsx` alongside `Component.tsx`
 
