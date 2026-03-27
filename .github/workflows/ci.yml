@@ -24,15 +24,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - uses: actions/cache/save@v4
         with:
           path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
+          key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
 
   lint:
     name: Lint
@@ -40,14 +43,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
       - uses: actions/cache/restore@v4
         with:
           path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
-      - run: npm run lint
+          key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm run lint
 
   test:
     name: Test
@@ -71,16 +77,19 @@ jobs:
       TEST_DATABASE_URL: postgresql://kanary_test:kanary_test@localhost:5433/kanary_test
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
       - uses: actions/cache/restore@v4
         with:
           path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
-      - run: npm run test:all -w packages/api
-      - run: npm test -w packages/dashboard
-      - run: npm test -w packages/sdk --if-present
+          key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm --filter @feature-flags/api run test:all
+      - run: pnpm --filter @feature-flags/dashboard test
+      - run: pnpm --filter @victoralfonsoperez/feature-flags-sdk test --if-present
 
   build:
     name: Build
@@ -88,11 +97,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
       - uses: actions/cache/restore@v4
         with:
           path: node_modules
-          key: node-modules-${{ hashFiles('package-lock.json') }}
-      - run: npm run build
+          key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm run build

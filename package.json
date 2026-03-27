@@ -3,14 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "packages/*"
-  ],
   "scripts": {
-    "dev": "npm run dev -w packages/api & npm run dev -w packages/dashboard & wait",
-    "build": "npm run build --workspaces --if-present",
-    "test": "docker compose -f docker-compose.test.yml up -d --wait && npm run test --workspaces --if-present ; docker compose -f docker-compose.test.yml down",
-    "lint": "npm run lint --workspaces --if-present"
+    "dev": "pnpm --filter @feature-flags/api dev & pnpm --filter @feature-flags/dashboard dev & wait",
+    "build": "pnpm -r build",
+    "test": "docker compose -f docker-compose.test.yml up -d --wait && pnpm -r test ; docker compose -f docker-compose.test.yml down",
+    "lint": "pnpm -r lint"
   },
   "engines": {
     "node": ">=24"

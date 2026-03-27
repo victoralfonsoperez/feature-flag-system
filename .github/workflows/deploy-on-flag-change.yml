@@ -10,10 +10,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: .nvmrc
+          node-version-file: .nvmrc
+          cache: pnpm
 
       - name: Fetch build-time flags
         run: |
@@ -24,8 +30,8 @@ jobs:
 
       - name: Install and build
         run: |
-          npm ci
-          npm run build
+          pnpm install --frozen-lockfile
+          pnpm run build
 
       - name: Deploy
         run: |

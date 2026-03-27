@@ -84,7 +84,7 @@ You should see `{ "status": "ok", ... }`.
 | Setting | Value |
 |---|---|
 | **Base directory** | `packages/dashboard` |
-| **Build command** | `cd ../.. && npm install && npm run build -w packages/dashboard` |
+| **Build command** | `cd ../.. && pnpm install && pnpm --filter @feature-flags/dashboard build` |
 | **Publish directory** | `packages/dashboard/dist` |
 
 ### Set environment variables
@@ -110,7 +110,7 @@ Or use `netlify.toml` at the repo root:
 ```toml
 [build]
   base = "packages/dashboard"
-  command = "cd ../.. && npm install && npm run build -w packages/dashboard"
+  command = "cd ../.. && pnpm install && pnpm --filter @feature-flags/dashboard build"
   publish = "packages/dashboard/dist"
 
 [[redirects]]

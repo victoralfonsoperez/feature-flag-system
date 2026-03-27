@@ -1,19 +1,20 @@
 FROM node:24-slim AS build
+RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/api/package.json packages/api/
 
-RUN npm install --workspace=packages/api
+RUN pnpm install --filter @feature-flags/api --frozen-lockfile
 
 COPY packages/api packages/api
 
-RUN npm run build --workspace=packages/api
+RUN pnpm --filter @feature-flags/api run build
 
 FROM node:24-slim
 WORKDIR /app
 
-COPY --from=build /app/package.json /app/package-lock.json* ./
+COPY --from=build /app/package.json /app/pnpm-lock.yaml ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/packages/api ./packages/api
 
