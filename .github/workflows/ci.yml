@@ -65,7 +65,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @feature-flags/api run test:all
       - run: pnpm --filter @feature-flags/dashboard test
-      - run: pnpm --filter @victoralfonsoperez/feature-flags-sdk test --if-present
+      - run: pnpm --filter @victoralfonsoperez/feature-flags-sdk run --if-present test
 
   build:
     name: Build
