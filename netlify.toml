@@ -1,0 +1,8 @@
+[build]
+  base    = "."
+  command = "pnpm --filter @feature-flags/dashboard run build"
+  publish = "packages/dashboard/dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  PNPM_VERSION = "10"
